@@ -109,3 +109,13 @@ def test_save_and_load_roundtrip(tmp_path):
     save_manifest(m, path)
     assert load_manifest(path).to_dict() == m.to_dict()
     assert m.to_dict() == make_manifest()
+
+
+def test_schema_ships_inside_the_engine_package():
+    from importlib.resources import files
+
+    from engine.core import graph
+
+    resource = files("engine.schemas") / "manifest.schema.json"
+    assert resource.is_file()
+    assert graph._schema()["title"] == "AdForge manifest"

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import fnmatch
 import json
+from importlib.resources import files
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -12,7 +13,6 @@ import jsonschema
 
 from engine.core.jsonio import write_json_atomic
 
-SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schemas" / "manifest.schema.json"
 
 
 class ManifestError(ValueError):
@@ -25,7 +25,7 @@ class ManifestError(ValueError):
 
 @lru_cache(maxsize=1)
 def _schema() -> dict:
-    return json.loads(SCHEMA_PATH.read_text())
+    return json.loads((files("engine.schemas") / "manifest.schema.json").read_text())
 
 
 def find_refs(value: Any) -> list[str]:
