@@ -90,3 +90,40 @@ def test_work_dir_is_fresh_each_time(tmp_path):
     (d / "junk").write_text("x")
     d2 = store.work_dir("v1.s01.clip")
     assert d2 == d and d2.is_dir() and not (d2 / "junk").exists()
+
+
+def test_commit_with_missing_produced_leaves_current_output_intact(tmp_path):
+    store = ProjectStore(tmp_path)
+    store.commit(VO, produce(tmp_path, "a.wav", "one"), "fp1")
+    with pytest.raises(FileNotFoundError):
+        store.commit(VO, tmp_path / "work" / "nope.wav", "fp2")
+    assert store.output(VO).read_text() == "one"
+    assert store.versions(VO) == []
+    st = store.get(VO.id)
+    assert (st.version, st.fingerprint) == (1, "fp1")
+
+
+def test_commit_after_lost_state_never_clobbers_archives(tmp_path):
+    store = ProjectStore(tmp_path)
+    store.commit(VO, produce(tmp_path, "a.wav", "one"), "fp1")
+    store.commit(VO, produce(tmp_path, "b.wav", "two"), "fp2")
+    store.state_path.unlink()
+    fresh = ProjectStore(tmp_path)
+    new_version = fresh.commit(VO, produce(tmp_path, "c.wav", "three"), "fp3")
+    archive = tmp_path / "v1/vo/versions"
+    assert (archive / "v1.vo.l01_v1.wav").read_text() == "one"
+    assert (archive / "v1.vo.l01_v2.wav").read_text() == "two"
+    assert fresh.output(VO).read_text() == "three"
+    assert new_version == 3 and fresh.versions(VO) == [1, 2]
+
+
+def test_rollback_saves_state_once(tmp_path, monkeypatch):
+    store = ProjectStore(tmp_path)
+    store.commit(VO, produce(tmp_path, "a.wav", "one"), "fp1")
+    store.commit(VO, produce(tmp_path, "b.wav", "two"), "fp2")
+    saves = []
+    real_save = store.save
+    monkeypatch.setattr(store, "save", lambda: (saves.append(1), real_save()))
+    store.rollback(VO, 1)
+    assert len(saves) == 1
+    assert ProjectStore(tmp_path).get(VO.id).pinned_version == 3

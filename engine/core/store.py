@@ -57,20 +57,34 @@ class ProjectStore:
         st = self.nodes.get(node.id)
         return st is not None and st.fingerprint == fingerprint and self.output(node).exists()
 
-    def commit(self, node: Node, produced: Path, fingerprint: str) -> int:
-        """Archive the current output (if any) to versions/, move `produced` into place."""
+    def commit(self, node: Node, produced: Path, fingerprint: str | None = None, *, pin: bool = False) -> int:
+        """Archive the current output (if any) to versions/, move `produced` into place.
+        An existing archive is never overwritten, even if state.json was lost.
+        pin=True (rollback) pins the new version and gives it the pinned fingerprint."""
+        if fingerprint is None and not pin:
+            raise ValueError("commit needs a fingerprint unless pin=True")
+        produced = Path(produced)
+        if not produced.exists():
+            raise FileNotFoundError(f"{node.id}: provider output {produced} does not exist")
         out = self.output(node)
         st = self.get(node.id)
+        archived = self.versions(node)
+        top = max([st.version, *archived])
         if out.exists():
-            archived = version_path(out, node.id, st.version)
-            archived.parent.mkdir(parents=True, exist_ok=True)
-            _remove(archived)
-            shutil.move(str(out), str(archived))
+            n = max(st.version, max(archived, default=0) + 1)
+            target = version_path(out, node.id, n)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(out), str(target))
+            top = n
         out.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(produced), str(out))
-        st.version += 1
+        st.version = top + 1
         st.status = "done"
-        st.fingerprint = fingerprint
+        if pin:
+            st.fingerprint = pinned_fingerprint(node.id, st.version)
+            st.pinned_version = st.version
+        else:
+            st.fingerprint = fingerprint
         st.reason = None
         st.message = None
         self.save()
@@ -106,10 +120,7 @@ class ProjectStore:
             shutil.copytree(src, staged)
         else:
             shutil.copy2(src, staged)
-        new_version = self.get(node.id).version + 1
-        self.commit(node, staged, pinned_fingerprint(node.id, new_version))
-        self.update(node.id, pinned_version=new_version)
-        return new_version
+        return self.commit(node, staged, pin=True)
 
     def pins(self) -> dict[str, int]:
         return {k: v.pinned_version for k, v in self.nodes.items() if v.pinned_version is not None}
