@@ -161,3 +161,42 @@ def test_commit_failure_is_isolated_to_the_node(project_dir):
     assert all(states[n] == "done" for n in states if ".keyframe" in n or ".clip" in n)
     vo = [e for e in Ledger(project_dir / "ledger.jsonl").entries() if e["node_id"].endswith(".vo.l01")]
     assert len(vo) == 2 and all(e["ok"] is False for e in vo)
+
+
+def test_deleted_dependency_output_rebuilds_its_dependents(project_dir):
+    run(project_dir, RecordingProvider())
+    (project_dir / "v1/shots/s01/keyframe.png").unlink()
+    p = RecordingProvider()
+    report = run(project_dir, p)
+    assert report.ok
+    assert set(p.calls) == V1_S01_CHAIN
+    assert set(report.ran) == V1_S01_CHAIN
+    assert not any(c.startswith("v2.") for c in p.calls)
+
+
+def test_dependency_rebuilt_in_an_earlier_run_still_invalidates_dependents(project_dir):
+    run(project_dir, RecordingProvider())
+    (project_dir / "v1/shots/s01/keyframe.png").unlink()
+    p = RecordingProvider()
+    run(project_dir, p, targets=["v1.s01.keyframe"])  # dependents out of scope, as after a crash
+    assert p.calls == ["v1.s01.keyframe"]
+    p = RecordingProvider()
+    run(project_dir, p)
+    assert set(p.calls) == V1_S01_CHAIN - {"v1.s01.keyframe"}
+
+
+def test_commit_records_dependency_versions(project_dir):
+    run(project_dir, RecordingProvider())
+    st = ProjectStore(project_dir).get("v1.s01.clip")
+    assert st.built_from == {"v1.s01.keyframe": 1}
+
+
+def test_old_state_without_built_from_still_loads_and_is_fresh(project_dir):
+    run(project_dir, RecordingProvider())
+    path = project_dir / "state.json"
+    data = json.loads(path.read_text())
+    for st in data["nodes"].values():
+        st.pop("built_from", None)
+    path.write_text(json.dumps(data))
+    p = RecordingProvider()
+    assert len(run(project_dir, p).skipped) == 17 and p.calls == []

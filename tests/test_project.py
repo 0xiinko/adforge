@@ -106,3 +106,26 @@ def test_rollback_pins_until_next_revise(project_dir):
 def test_open_uses_project_config_yaml(project_dir):
     (project_dir / "config.yaml").write_text("concurrency: {mock: 3}\n")
     assert Project.open(project_dir).config.limit("mock") == 3
+
+
+def test_dry_run_matches_run_after_dependency_output_deleted(project_dir):
+    project = Project(project_dir, FAST)
+    run(project)
+    (project_dir / "v1/shots/s01/keyframe.png").unlink()
+    planned = {p.node_id for p in project.dry_run(providers={"mock": RecordingProvider()}).to_run}
+    report, _ = run(project)
+    assert planned == set(report.ran) == {
+        "v1.s01.keyframe", "v1.s01.clip", "v1.timeline", "v1.preview", "v1.capcut_draft",
+    }
+
+
+def test_pinned_node_is_kept_when_its_dependency_rebuilds(project_dir):
+    project = Project(project_dir, FAST)
+    run(project)
+    project.revise("v1.s01.clip", {"prompt": "take two"})
+    run(project)
+    project.rollback("v1.s01.clip", 1)
+    run(project)
+    (project_dir / "v1/shots/s01/keyframe.png").unlink()
+    _, p = run(project)
+    assert set(p.calls) == {"v1.s01.keyframe"}

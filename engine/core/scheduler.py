@@ -69,8 +69,9 @@ class Scheduler:
         report = RunReport()
         status: dict[str, str] = {}
 
+        stale = self.store.stale_nodes(m, fps, order)
         for nid in order:
-            if self.store.is_fresh(m.nodes[nid], fps[nid]):
+            if nid not in stale:
                 status[nid] = "done"
                 report.skipped.append(nid)
                 if self.store.get(nid).status != "done":

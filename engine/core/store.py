@@ -5,9 +5,10 @@ import json
 import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Iterable
 
 from engine.core.cache import pinned_fingerprint
-from engine.core.graph import Node
+from engine.core.graph import Manifest, Node
 from engine.core.jsonio import write_json_atomic
 from engine.core.paths import output_path, version_path
 
@@ -20,6 +21,7 @@ class NodeState:
     reason: str | None = None
     message: str | None = None
     pinned_version: int | None = None
+    built_from: dict[str, int] | None = None  # dependency versions at commit; None in old state files
 
 
 def _remove(path: Path) -> None:
@@ -57,6 +59,30 @@ class ProjectStore:
         st = self.nodes.get(node.id)
         return st is not None and st.fingerprint == fingerprint and self.output(node).exists()
 
+    def stale_nodes(self, manifest: Manifest, fingerprints: dict[str, str], order: Iterable[str]) -> set[str]:
+        """The freshness rule, shared by run and dry-run. `order` must be topological.
+        A node is stale unless its fingerprint matches, its output exists, no
+        dependency is stale, and every dependency is still at the version it was
+        built from. Pinned (rolled-back) nodes only need fingerprint + output."""
+        pins = self.pins()
+        stale: set[str] = set()
+        for nid in order:
+            node = manifest.nodes[nid]
+            fresh = self.is_fresh(node, fingerprints[nid])
+            if fresh and nid not in pins:
+                built_from = self.nodes[nid].built_from
+                fresh = not any(d in stale for d in node.depends_on) and (
+                    built_from is None
+                    or all(built_from.get(d) == self._version(d) for d in node.depends_on)
+                )
+            if not fresh:
+                stale.add(nid)
+        return stale
+
+    def _version(self, node_id: str) -> int:
+        st = self.nodes.get(node_id)
+        return st.version if st else 0
+
     def commit(self, node: Node, produced: Path, fingerprint: str | None = None, *, pin: bool = False) -> int:
         """Archive the current output (if any) to versions/, move `produced` into place.
         An existing archive is never overwritten, even if state.json was lost.
@@ -80,6 +106,7 @@ class ProjectStore:
         shutil.move(str(produced), str(out))
         st.version = top + 1
         st.status = "done"
+        st.built_from = {d: self._version(d) for d in node.depends_on}
         if pin:
             st.fingerprint = pinned_fingerprint(node.id, st.version)
             st.pinned_version = st.version

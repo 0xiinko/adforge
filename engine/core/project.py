@@ -71,12 +71,12 @@ class Project:
         manifest, store, provs = self.manifest(), self.store(), self._providers(providers)
         fps = compute_fingerprints(manifest, self.config, self.dir, store.pins())
         scope = manifest.scope(targets)
+        order = [nid for nid in manifest.topo_order() if nid in scope]
+        stale = store.stale_nodes(manifest, fps, order)
         report = DryRunReport()
-        for nid in manifest.topo_order():
-            if nid not in scope:
-                continue
+        for nid in order:
             node = manifest.nodes[nid]
-            if store.is_fresh(node, fps[nid]):
+            if nid not in stale:
                 report.cached.append(nid)
                 continue
             route = self.config.route(node)
