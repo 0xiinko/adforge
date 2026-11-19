@@ -102,6 +102,14 @@ def validate_dict(data: Any) -> None:
             errors.append(f"duplicate node id: {n['id']}")
         seen.add(n["id"])
         ids.append(n["id"])
+    bad_ids = [f"invalid node id: {i!r}" for i in ids if not ID_RE.fullmatch(i)]
+    if bad_ids:  # the schema's `$` lets a trailing newline through
+        raise ManifestError(bad_ids)
+
+    from engine.core.paths import layout_errors  # paths imports graph; import here to avoid a cycle
+
+    types = {n["id"]: n["type"] for n in data["nodes"]}
+    errors.extend(layout_errors(types.items()))
 
     for n in data["nodes"]:
         deps = set(n["depends_on"])

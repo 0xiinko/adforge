@@ -143,3 +143,39 @@ def test_nested_refs_found_and_resolved():
     assert resolve_refs(value, lambda r: f"<{r}>") == {
         "a": {"b": ["<x.y>", {"c": "<x.y.z>"}]}, "d": "@x.y", "e": "plain @x.y", "f": 3,
     }
+
+
+def _add(data, node_id, node_type="image"):
+    data["nodes"].append({"id": node_id, "type": node_type, "inputs": {}, "depends_on": []})
+
+
+def test_directory_output_cannot_contain_another_nodes_output():
+    data = make_manifest()
+    _add(data, "v1.draft", "capcut_draft")
+    _add(data, "v1.draft.x")
+    with pytest.raises(ManifestError) as exc:
+        Manifest.from_dict(data)
+    msg = str(exc.value)
+    assert "v1.draft" in msg and "v1.draft.x" in msg
+
+
+@pytest.mark.parametrize("bad_id", ["v1.versions", "v1.shots", "v1.versions.x"])
+def test_reserved_layout_names_rejected(bad_id):
+    data = make_manifest()
+    _add(data, bad_id)
+    with pytest.raises(ManifestError, match="reserved"):
+        Manifest.from_dict(data)
+
+
+def test_id_with_trailing_newline_rejected():
+    data = make_manifest()
+    node(data, "refs.product_hero")["id"] = "refs.hero\n"
+    for n in data["nodes"]:
+        n["depends_on"] = []
+        n["inputs"] = {}
+    with pytest.raises(ManifestError, match="invalid node id"):
+        Manifest.from_dict(data)
+
+
+def test_default_manifest_layout_is_valid():
+    Manifest.from_dict(make_manifest(variants=("v1", "v2", "v3"), shots=4))
