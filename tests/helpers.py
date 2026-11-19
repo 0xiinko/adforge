@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 
+from engine.config import EngineConfig
 from engine.providers.base import ProviderRefusal, TransientProviderError
 from engine.providers.mock import MockProvider
 
@@ -106,3 +107,6 @@ class RecordingProvider(MockProvider):
         finally:
             self.active -= 1
             self.events.append(("end", nid))
+
+
+FAST = EngineConfig.from_dict({"retry": {"base_delay_s": 0}, "default_concurrency": 8})
