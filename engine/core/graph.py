@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import re
 from importlib.resources import files
 from dataclasses import dataclass
 from functools import lru_cache
@@ -23,15 +24,29 @@ class ManifestError(ValueError):
         self.errors = errors
 
 
+ID_PATTERN = r"[a-z0-9_]+(?:\.[a-z0-9_]+){1,2}"
+ID_RE = re.compile(ID_PATTERN)
+REF_RE = re.compile("@(" + ID_PATTERN + ")")
+
+
+def _ref_id(value: str) -> str | None:
+    """The referenced id if `value` is exactly `@<id>`; None for any other string
+    (including escaped `@@...` literals)."""
+    m = REF_RE.fullmatch(value)
+    return m.group(1) if m else None
+
+
 @lru_cache(maxsize=1)
 def _schema() -> dict:
     return json.loads((files("engine.schemas") / "manifest.schema.json").read_text())
 
 
 def find_refs(value: Any) -> list[str]:
-    """All `@id` references inside a nested inputs value, in order."""
+    """All `@id` references inside a nested inputs value, in order. A string is a
+    reference only when it is exactly `@<id>`; `@@...` is an escaped literal."""
     if isinstance(value, str):
-        return [value[1:]] if value.startswith("@") else []
+        ref = _ref_id(value)
+        return [ref] if ref else []
     if isinstance(value, list):
         return [r for item in value for r in find_refs(item)]
     if isinstance(value, dict):
@@ -40,9 +55,13 @@ def find_refs(value: Any) -> list[str]:
 
 
 def resolve_refs(value: Any, lookup: Callable[[str], str]) -> Any:
-    """Copy of `value` with every `@id` string replaced by `lookup(id)`."""
+    """Copy of `value` with every `@id` string replaced by `lookup(id)`.
+    `@@foo` becomes the literal `@foo`; other strings pass through unchanged."""
     if isinstance(value, str):
-        return lookup(value[1:]) if value.startswith("@") else value
+        if value.startswith("@@"):
+            return value[1:]
+        ref = _ref_id(value)
+        return lookup(ref) if ref else value
     if isinstance(value, list):
         return [resolve_refs(item, lookup) for item in value]
     if isinstance(value, dict):

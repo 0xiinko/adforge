@@ -119,3 +119,27 @@ def test_schema_ships_inside_the_engine_package():
     resource = files("engine.schemas") / "manifest.schema.json"
     assert resource.is_file()
     assert graph._schema()["title"] == "AdForge manifest"
+
+
+def test_at_sign_in_ad_copy_is_literal():
+    data = make_manifest()
+    node(data, "v1.vo.l01")["inputs"]["text"] = "@acme has a sale"
+    m = Manifest.from_dict(data)
+    assert find_refs(m.nodes["v1.vo.l01"].inputs) == []
+    assert resolve_refs("@acme has a sale", lambda r: "X") == "@acme has a sale"
+
+
+def test_double_at_escapes_a_ref_shaped_literal():
+    data = make_manifest()
+    node(data, "v1.vo.l01")["inputs"]["text"] = "@@acme.sale"
+    m = Manifest.from_dict(data)
+    assert find_refs(m.nodes["v1.vo.l01"].inputs) == []
+    assert resolve_refs(m.nodes["v1.vo.l01"].inputs, lambda r: "X")["text"] == "@acme.sale"
+
+
+def test_nested_refs_found_and_resolved():
+    value = {"a": {"b": ["@x.y", {"c": "@x.y.z"}]}, "d": "@@x.y", "e": "plain @x.y", "f": 3}
+    assert find_refs(value) == ["x.y", "x.y.z"]
+    assert resolve_refs(value, lambda r: f"<{r}>") == {
+        "a": {"b": ["<x.y>", {"c": "<x.y.z>"}]}, "d": "@x.y", "e": "plain @x.y", "f": 3,
+    }
