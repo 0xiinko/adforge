@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adforge.local/manifest.schema.json",
+  "title": "AdForge manifest",
+  "type": "object",
+  "required": ["manifest_version", "project", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "manifest_version": {"const": 1},
+    "project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "inputs", "depends_on"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+){1,2}$"},
+        "type": {"enum": ["image", "video", "tts", "sfx", "music", "timeline", "preview", "capcut_draft"]},
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "prompt": {"type": "string"},
+        "inputs": {"type": "object"},
+        "depends_on": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "status": {"enum": ["pending", "running", "done", "failed", "blocked", "needs_review"]},
+        "version": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}
