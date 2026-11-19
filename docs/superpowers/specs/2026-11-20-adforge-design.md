@@ -27,7 +27,7 @@ Web dashboard, multi-user shared server, FCPXML export, brand kits, auto-publish
 
 ## 3. Architecture
 
-**Separation rule:** the brain makes all creative decisions and never calls generation APIs. The engine makes no creative decisions and only executes the manifest. The single contract between them is `manifest.json` (validated by `schemas/manifest.schema.json`).
+**Separation rule:** the brain makes all creative decisions and never calls generation APIs. The engine makes no creative decisions and only executes the manifest. The single contract between them is `manifest.json` (validated by `engine/schemas/manifest.schema.json`).
 
 ```
 adforge/
@@ -45,7 +45,7 @@ adforge/
     qc/        vision_judge.py
     assembly/  timeline.py ffmpeg_preview.py capcut_draft.py
     mcp_server.py  cli.py  config.py
-  schemas/manifest.schema.json
+    schemas/   manifest.schema.json   # packaged with the engine
   config.example.yaml
   tests/
 creators/                         # creator library, shared across all projects (location configurable)
