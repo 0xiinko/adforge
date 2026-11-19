@@ -99,6 +99,7 @@ Runtime fields (`status`, `version`, `fingerprint`, `output`, the spec that prod
 - **IDs:** `<scope>.<unit>.<kind>`, e.g. `refs.product_hero`, `creator.maya.face_front`, `v2.s03.keyframe`, `v2.s03.clip`, `v2.s02.talk`, `v2.vo.l04`, `v2.sfx.whoosh02`, `v2.timeline`. IDs are stable forever within a project.
 - **`creator_asset` nodes** are read-only links to creator library files. Their fingerprint is the library file hash plus the creator version, so they are never rendered by the project and only change when the creator changes.
 - **References:** `@<id>` in `inputs` resolves to that node's current output path. `depends_on` must include every referenced ID (schema-validated).
+  A string is a reference only when the *whole* string is `@` plus a valid node ID (e.g. `"@v2.s03.keyframe"`); other strings, like ad copy `"@acme has a sale"`, pass through as plain text. To pass a literal string that would otherwise look like a reference (e.g. a handle `@acme.co`), write `@@` (`"@@acme.co"` → `"@acme.co"`).
 - **Status values:** `pending | running | done | failed | blocked | needs_review`.
 - **Fingerprint:** `sha256(type, provider, model, prompt, resolved inputs, fingerprints of dependencies)`. If it matches the stored fingerprint and the output exists, the node is skipped. Otherwise the node re-renders, and so does everything that depends on it.
 - **Versioning:** before overwriting, the previous output moves to `versions/<node>_v<N>.<ext>`. `version` increments. Rollback = restore a version via `adengine rollback <id> <N>`.
