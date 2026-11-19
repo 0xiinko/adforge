@@ -1,0 +1,25 @@
+# AdForge engine config. Copy to projects/<slug>/config.yaml or pass --config.
+# Model names live here, never in engine code. Secrets come from env / .env only.
+routing:
+  image:        {provider: mock, model: mock-image}
+  video:        {provider: mock, model: mock-video}
+  tts:          {provider: mock, model: mock-tts}
+  sfx:          {provider: mock, model: mock-sfx}
+  music:        {provider: mock, model: mock-music}
+  timeline:     {provider: mock, model: mock-timeline}
+  preview:      {provider: mock, model: mock-preview}
+  capcut_draft: {provider: mock, model: mock-capcut_draft}
+
+# Max simultaneous calls per provider. Real providers arrive in plan 3, e.g.
+#   openai_image: 8
+#   seedance: 4
+#   fishaudio: 10
+concurrency:
+  mock: 8
+default_concurrency: 4
+
+# Temporary failures (429/5xx/timeouts) retry with exponential backoff.
+retry:
+  max_attempts: 3
+  base_delay_s: 1.0
+  max_delay_s: 30.0
