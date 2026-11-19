@@ -72,8 +72,12 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_revise(args: argparse.Namespace) -> int:
+    changes = json.loads(args.json)
+    if not isinstance(changes, dict):
+        print("ERROR: --json must be an object", file=sys.stderr)
+        return 1
     project = _project(args)
-    project.revise(args.node_id, json.loads(args.json))
+    project.revise(args.node_id, changes)
     print(f"revised {args.node_id}")
     if args.no_run:
         return 0
@@ -122,7 +126,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return args.fn(args)
     except (ManifestError, ConfigError, ValueError, KeyError, FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        message = e.args[0] if isinstance(e, KeyError) and e.args else e
+        print(f"ERROR: {message}", file=sys.stderr)
         return 1
 
 

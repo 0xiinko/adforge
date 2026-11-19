@@ -54,3 +54,13 @@ def test_errors_exit_nonzero_with_message(project_dir, capsys):
 def test_example_config_loads():
     cfg = load_config(Path(__file__).resolve().parents[1] / "config.example.yaml")
     assert cfg.routing["video"].provider == "mock"
+
+
+def test_revise_json_must_be_an_object(project_dir, capsys):
+    assert main(["revise", str(project_dir), "v1.vo.l01", "--json", "[1, 2]", "--no-run"]) == 1
+    assert capsys.readouterr().err.strip() == "ERROR: --json must be an object"
+
+
+def test_key_error_printed_without_quotes(project_dir, capsys):
+    assert main(["rollback", str(project_dir), "v9.vo.l01", "1"]) == 1
+    assert capsys.readouterr().err.strip() == "ERROR: unknown node v9.vo.l01"

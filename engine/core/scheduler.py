@@ -128,7 +128,6 @@ class Scheduler:
             inputs = resolve_inputs(self.manifest, self.store.dir, node)
             for attempt in range(1, retry.max_attempts + 1):
                 ctx = CallContext(node_id=nid, model=route.model, work_dir=self.store.work_dir(nid))
-                started = time.monotonic()
                 try:
                     async with self._sem(route.provider):
                         started = time.monotonic()

@@ -99,6 +99,8 @@ class Project:
             raise KeyError(f"unknown node {node_id}")
         for key, value in changes.items():
             if key == "inputs":
+                if not isinstance(value, dict):
+                    raise ValueError("inputs change must be an object of input name -> value (null removes)")
                 merged = dict(target.get("inputs", {}))
                 for ik, iv in value.items():
                     if iv is None:
@@ -111,8 +113,8 @@ class Project:
             else:
                 target[key] = value
         manifest = Manifest.from_dict(data)  # validates; raises before anything is written
+        self.store().unpin(node_id)  # before saving: a crash in between leaves it unpinned, never stale-pinned
         save_manifest(manifest, self.manifest_path)
-        self.store().unpin(node_id)
 
     def rollback(self, node_id: str, version: int) -> int:
         manifest = self.manifest()

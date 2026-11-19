@@ -129,3 +129,29 @@ def test_pinned_node_is_kept_when_its_dependency_rebuilds(project_dir):
     (project_dir / "v1/shots/s01/keyframe.png").unlink()
     _, p = run(project)
     assert set(p.calls) == {"v1.s01.keyframe"}
+
+
+def test_revise_rejects_non_dict_inputs(project_dir):
+    project = Project(project_dir, FAST)
+    before = (project_dir / "manifest.json").read_text()
+    with pytest.raises(ValueError, match="inputs"):
+        project.revise("v1.vo.l01", {"inputs": ["text"]})
+    assert (project_dir / "manifest.json").read_text() == before
+
+
+def test_revise_unpins_before_saving_manifest(project_dir, monkeypatch):
+    import engine.core.project as project_mod
+
+    project = Project(project_dir, FAST)
+    run(project)
+    project.revise("v1.vo.l01", {"inputs": {"text": "Second take"}})
+    run(project)
+    project.rollback("v1.vo.l01", 1)
+
+    def crash(*a, **k):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(project_mod, "save_manifest", crash)
+    with pytest.raises(OSError):
+        project.revise("v1.vo.l01", {"inputs": {"text": "Third take"}})
+    assert project.store().pins() == {}
