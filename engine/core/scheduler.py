@@ -93,7 +93,11 @@ class Scheduler:
             finished, _ = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
             for task in finished:
                 nid = running.pop(task)
-                outcome, reason, message = task.result()
+                exc = task.exception()
+                if exc is not None:  # backstop: _run_node should never raise
+                    outcome, reason, message = "failed", "error", f"{type(exc).__name__}: {exc}"
+                else:
+                    outcome, reason, message = task.result()
                 status[nid] = outcome
                 if outcome == "done":
                     report.ran.append(nid)
@@ -113,34 +117,42 @@ class Scheduler:
         node = self.manifest.nodes[nid]
         try:
             route = self.config.route(node)
-            provider = self.providers[route.provider]
         except ConfigError as e:
             return ("failed", "config", str(e))
-        except KeyError:
+        provider = self.providers.get(route.provider)
+        if provider is None:
             return ("failed", "config", f"no provider registered as {route.provider!r}")
-        inputs = resolve_inputs(self.manifest, self.store.dir, node)
         retry = self.config.retry
-        for attempt in range(1, retry.max_attempts + 1):
-            ctx = CallContext(node_id=nid, model=route.model, work_dir=self.store.work_dir(nid))
-            started = time.monotonic()
-            try:
-                async with self._sem(route.provider):
-                    produced = await execute(node, provider, ctx, inputs)
-            except TransientProviderError as e:
-                self._log(node, route, provider, inputs, started, attempt, ok=False)
-                if attempt == retry.max_attempts:
-                    return ("failed", "transient", str(e))
-                await self.sleep(min(retry.base_delay_s * 2 ** (attempt - 1), retry.max_delay_s))
-                continue
-            except ProviderRefusal as e:
-                self._log(node, route, provider, inputs, started, attempt, ok=False)
-                return ("needs_review", "refused", str(e))
-            except Exception as e:  # hard failure: isolate it to this node
-                self._log(node, route, provider, inputs, started, attempt, ok=False)
-                return ("failed", "error", f"{type(e).__name__}: {e}")
-            self._log(node, route, provider, inputs, started, attempt, ok=True)
-            self.store.commit(node, produced, fingerprint)
-            return ("done", None, None)
+        try:
+            inputs = resolve_inputs(self.manifest, self.store.dir, node)
+            for attempt in range(1, retry.max_attempts + 1):
+                ctx = CallContext(node_id=nid, model=route.model, work_dir=self.store.work_dir(nid))
+                started = time.monotonic()
+                try:
+                    async with self._sem(route.provider):
+                        started = time.monotonic()
+                        produced = await execute(node, provider, ctx, inputs)
+                except TransientProviderError as e:
+                    self._log(node, route, provider, inputs, started, attempt, ok=False)
+                    if attempt == retry.max_attempts:
+                        return ("failed", "transient", str(e))
+                    await self.sleep(min(retry.base_delay_s * 2 ** (attempt - 1), retry.max_delay_s))
+                    continue
+                except ProviderRefusal as e:
+                    self._log(node, route, provider, inputs, started, attempt, ok=False)
+                    return ("needs_review", "refused", str(e))
+                except Exception as e:  # hard failure: isolate it to this node
+                    self._log(node, route, provider, inputs, started, attempt, ok=False)
+                    return ("failed", "error", f"{type(e).__name__}: {e}")
+                try:
+                    self.store.commit(node, produced, fingerprint)
+                except Exception:
+                    self._log(node, route, provider, inputs, started, attempt, ok=False)
+                    raise
+                self._log(node, route, provider, inputs, started, attempt, ok=True)
+                return ("done", None, None)
+        except Exception as e:  # anything unexpected stays isolated to this node
+            return ("failed", "error", f"{type(e).__name__}: {e}")
         raise AssertionError("unreachable")
 
     def _log(self, node: Node, route: Route, provider: Provider, inputs: dict, started: float, attempt: int, ok: bool) -> None:

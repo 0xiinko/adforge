@@ -143,3 +143,21 @@ def test_ledger_logs_generation_calls_only(project_dir):
     assert len(entries) == 11
     assert {"node_id", "provider", "model", "cost_usd", "seconds", "attempt", "ok", "ts"} <= set(entries[0])
     assert round(Ledger(project_dir / "ledger.jsonl").total_cost(), 2) == 1.1
+
+
+class MissingFileTTS(RecordingProvider):
+    async def tts(self, ctx, text, voice, emotion):
+        await self._before(ctx)
+        return ctx.work_dir / "never_written.wav"
+
+
+def test_commit_failure_is_isolated_to_the_node(project_dir):
+    report = run(project_dir, MissingFileTTS())
+    assert sorted(report.failed) == ["v1.vo.l01", "v2.vo.l01"]
+    assert {"v1.timeline", "v2.timeline"} <= set(report.blocked)
+    store = ProjectStore(project_dir)
+    states = {n: store.get(n).status for n in load_manifest(project_dir / "manifest.json").nodes}
+    assert "running" not in states.values()
+    assert all(states[n] == "done" for n in states if ".keyframe" in n or ".clip" in n)
+    vo = [e for e in Ledger(project_dir / "ledger.jsonl").entries() if e["node_id"].endswith(".vo.l01")]
+    assert len(vo) == 2 and all(e["ok"] is False for e in vo)
