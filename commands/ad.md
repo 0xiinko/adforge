@@ -19,4 +19,6 @@ Run these stages in order. Each stage is a skill in this plugin; follow it exact
    When `plan.md` has more than one variant, do stages 2–5 for v1 and the body yourself, then dispatch one **variant-writer** agent per other variant, in parallel, and wait for all of them. The body is written once, never per variant.
 6. **ad-runner** — manifest and config, the cast preview (only with the user's OK), then **the gate: stop and wait for the user's approval**. Only after approval: the Ellora render loop, the report, and revisions.
 
+If the user changes a person at the cast preview or the gate, update `cast.md`, redo stage 5 (prompt-craft) for every shot with that person, and re-validate before continuing.
+
 Never call Ellora's `generate_image` or `generate_video` before the user agrees: the cast preview needs its own OK, everything else needs the gate.

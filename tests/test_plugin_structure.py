@@ -86,5 +86,12 @@ def test_strategist_detects_supplied_scripts_and_story():
 def test_cast_designer_defines_fixed_phrases():
     body = (ROOT / "skills" / "cast-designer" / "SKILL.md").read_text()
     for needle in ("cast.md", "Look phrase", "Voice phrase", "Reference prompt", "cast.<id>.ref",
-                   "word for word", "No cast"):
+                   "word for word", "No cast", "Defaults chosen", "voice only", "may be shown on screen",
+                   "Variant-writers may only use people already in cast.md",
+                   "no extra fingers, no text, no watermark."):
         assert needle in body, needle
+
+
+def test_ad_command_updates_cast_when_a_person_changes():
+    body = (ROOT / "commands" / "ad.md").read_text()
+    assert "update `cast.md`" in body
