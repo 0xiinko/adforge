@@ -123,7 +123,7 @@ External image nodes must have `n` absent or `1`. Ellora returns one image per c
    - video: `generate_video` with the prompt, `modelId`, `durationSec`, `aspectRatio` and `firstFrameUrl` from `external_inputs`. Then `check_generation` with `wait: true` until it finishes or fails.
    - Download the finished file from the link `check_generation` returns into `projects/<slug>/.tmp/ellora/`.
    - `adengine supply … --ref <Ellora path> --id <id>`, or `--failed` / `--refused` with Ellora's message.
-4. Back to step 1 until `run` exits `0` or `1`.
+4. Back to step 1 until `run` exits `0` or `1`. A node reported with `--failed` is listed as awaiting again by the next `run` (exit `3`), so Claude retries it at most once more in the loop; if it fails a second time, Claude stops the loop and reports the node to the user (it stays listed as awaiting until then).
 
 Because dependents of a keyframe can't start until it is supplied, the loop usually takes two passes per variant: keyframes, then clips. Revisions reuse the same loop: `revise` changes the fingerprint, so the node goes back to `awaiting_external` on the next run.
 
