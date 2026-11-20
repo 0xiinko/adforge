@@ -1,4 +1,5 @@
-"""The manifest /ad writes (skills/ad-runner/example-manifest.json) must work with the engine."""
+"""The manifest /ad writes (skills/ad-runner/example-manifest.json) — two hooks sharing one body,
+one consistent presenter — must work with the engine end to end."""
 import asyncio
 import json
 import re
@@ -17,12 +18,20 @@ from engine.providers.mock import PNG_1X1
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "skills" / "ad-runner" / "example-manifest.json"
 CONFIG = ROOT / "skills" / "ad-runner" / "example-config.yaml"
-SHOTS = [f"s{i:02d}" for i in range(1, 6)]
+VARIANTS = {"v1": ["v1.s01", "v1.s02"], "v2": ["v2.s01", "v2.s02"]}
+BODY = ["body.s01", "body.s02", "body.s03", "body.s04"]
+CAST = "cast.maya.ref"
+NO_CAST = {"body.s03"}  # the packshot: no person on screen, Maya speaks off camera
+LOOK = ("Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark "
+        "curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater)")
+VOICE = "a warm, low, unhurried American woman's voice, a little dry and knowing"
+ANTI_SLOP_IMAGE = "Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark."
+ANTI_SLOP_VIDEO = "Stable face and hands, no morphing or warping."
 
 
 @pytest.fixture
 def ad_dir(tmp_path):
-    d = tmp_path / "complete-kit-dustpan"
+    d = tmp_path / "complete-kit-four-hooks"
     d.mkdir()
     shutil.copy(EXAMPLE, d / "manifest.json")
     shutil.copy(CONFIG, d / "config.yaml")
@@ -38,69 +47,102 @@ def test_example_config_routes_images_and_video_to_ellora():
     assert cfg["external_providers"] == ["ellora"]
     assert cfg["routing"]["image"] == {"provider": "ellora", "model": "nano-banana-pro"}
     assert cfg["routing"]["video"] == {"provider": "ellora", "model": "kling-3.0/video"}
+    for t in ("timeline", "preview", "capcut_draft"):
+        assert cfg["routing"][t]["provider"] == "assembly"
 
 
 def test_example_manifest_validates(ad_dir, capsys):
     assert main(["validate", str(ad_dir)]) == 0
-    assert capsys.readouterr().out.strip() == "OK: 13 nodes"
+    assert capsys.readouterr().out.strip() == "OK: 23 nodes"
 
 
-def test_example_manifest_shape():
+def test_cast_reference_is_a_plain_portrait():
+    cast = nodes()[CAST]
+    assert cast["type"] == "image" and cast["depends_on"] == [] and cast["inputs"] == {"aspect": "9:16"}
+    assert "looking straight into the camera" in cast["prompt"]
+    assert cast["prompt"].endswith(ANTI_SLOP_IMAGE)
+
+
+def test_every_shot_with_maya_uses_the_reference_and_the_look_phrase():
     n = nodes()
-    assert len(n) == 13
+    for shot in [s for shots in VARIANTS.values() for s in shots] + BODY:
+        kf = n[f"{shot}.keyframe"]
+        assert kf["type"] == "image" and kf["prompt"].endswith(ANTI_SLOP_IMAGE), shot
+        if shot in NO_CAST:
+            assert kf["inputs"] == {"aspect": "9:16"} and kf["depends_on"] == [], shot
+            assert "Maya" not in kf["prompt"], shot
+        else:
+            assert kf["inputs"] == {"aspect": "9:16", "refs": [f"@{CAST}"]}, shot
+            assert kf["depends_on"] == [CAST], shot
+            assert LOOK in kf["prompt"], shot
+
+
+def test_every_clip_speaks_its_line_in_mayas_voice():
+    n = nodes()
+    for shot in [s for shots in VARIANTS.values() for s in shots] + BODY:
+        clip = n[f"{shot}.clip"]
+        assert clip["type"] == "video" and clip["depends_on"] == [f"{shot}.keyframe"], shot
+        assert clip["inputs"]["first_frame"] == f"@{shot}.keyframe" and clip["inputs"]["aspect"] == "9:16"
+        assert clip["inputs"]["duration"] in (4, 5), shot
+        assert VOICE in clip["prompt"] and ANTI_SLOP_VIDEO in clip["prompt"], shot
+        assert "natural ambient sound, no music" in clip["prompt"].lower(), shot
+
+
+def test_each_variant_is_its_hook_then_the_shared_body():
+    n = nodes()
     assert not [i for i, node in n.items() if node["type"] in ("tts", "sfx", "music")]
-    for s in SHOTS:
-        kf, clip = n[f"v1.{s}.keyframe"], n[f"v1.{s}.clip"]
-        assert kf["type"] == "image" and kf["inputs"] == {"aspect": "9:16"} and kf["depends_on"] == []
-        assert kf["prompt"].strip() and clip["prompt"].strip()
-        assert clip["type"] == "video" and clip["depends_on"] == [f"v1.{s}.keyframe"]
-        assert clip["inputs"]["first_frame"] == f"@v1.{s}.keyframe"
-        assert clip["inputs"]["aspect"] == "9:16" and clip["inputs"]["duration"] in (4, 5)
-    total = sum(n[f"v1.{s}.clip"]["inputs"]["duration"] for s in SHOTS)
-    assert 20 <= total <= 25
-    tl = n["v1.timeline"]["inputs"]
-    assert "vo" not in tl and "music" not in tl and tl["captions"] is True
-    assert not [d for d in n["v1.timeline"]["depends_on"] if ".vo." in d or "music" in d]
-    for k, s in enumerate(SHOTS):
-        shot = tl["shots"][k]
-        clip = n[f"v1.{s}.clip"]
-        assert shot["duration"] == clip["inputs"]["duration"]
-        assert shot["clip"] == f"@v1.{s}.clip"
-        assert shot["fallback"] == f"@v1.{s}.keyframe"
-        assert shot["audio"] is True
-        words = len(shot["text"].split())
-        assert 0 < words <= 14 and words <= 2.6 * shot["duration"], shot["text"]
-        assert f'"{shot["text"]}"' in clip["prompt"]
-        assert "natural ambient sound, no music" in clip["prompt"].lower()
+    assert not [i for i in n if i.startswith(("v1.body", "v2.body"))]
+    for v, hook in VARIANTS.items():
+        tl = n[f"{v}.timeline"]
+        shots = tl["inputs"]["shots"]
+        assert [s["clip"] for s in shots] == [f"@{x}.clip" for x in hook + BODY]
+        assert tl["inputs"]["captions"] is True and "vo" not in tl["inputs"] and "music" not in tl["inputs"]
+        assert set(tl["depends_on"]) == {f"{x}.{k}" for x in hook + BODY for k in ("clip", "keyframe")}
+        for s, x in zip(shots, hook + BODY):
+            clip = n[f"{x}.clip"]
+            assert s["fallback"] == f"@{x}.keyframe" and s["audio"] is True
+            assert s["duration"] == clip["inputs"]["duration"]
+            words = len(s["text"].split())
+            assert 0 < words <= 14 and words <= 2.6 * s["duration"], s["text"]
+            assert f'"{s["text"]}"' in clip["prompt"], x
+        assert n[f"{v}.preview"]["inputs"] == {"timeline": f"@{v}.timeline"}
+        assert n[f"{v}.capcut_draft"]["inputs"] == {"timeline": f"@{v}.timeline"}
+
+
+def test_lines_come_word_for_word_from_the_example_brief():
+    brief = " ".join((ROOT / "docs" / "examples" / "brief-ellora-four-hooks.md").read_text().split())
+    n = nodes()
+    for v in VARIANTS:
+        for s in n[f"{v}.timeline"]["inputs"]["shots"]:
+            assert s["text"] in brief, s["text"]
 
 
 def test_example_copy_respects_ellora_claim_rules():
     banned = ["cure", "treat", "prevent", "clinically proven", "doctor", "pharmacist", "candida", "ibs",
-              "before and after", "parasite", "heal", "diagnosed", "diagnosis"]
+              "before and after", "parasite", "heal", "diagnosed", "diagnosis", "herpes", "virus", "antiviral"]
     n = nodes()
-    tl = n["v1.timeline"]["inputs"]
-    copy = [shot["text"] for shot in tl["shots"]]
-    copy.append(tl["end_card"]["text"])
+    copy = [s["text"] for v in VARIANTS for s in n[f"{v}.timeline"]["inputs"]["shots"]]
+    copy += [n[f"{v}.timeline"]["inputs"]["end_card"]["text"] for v in VARIANTS]
     for line in copy:
         hits = [w for w in banned if re.search(r"\b" + re.escape(w) + r"\b", line.lower())]
         assert not hits, line
 
 
-def test_example_bottle_shots_use_the_label_wording():
+def test_bottle_shots_use_the_label_wording():
     n = nodes()
-    assert "Ellora Gut Cleanse (Step 1)" in n["v1.s02.keyframe"]["prompt"]
-    assert "DIGESTIVE HEALTH & GUT BALANCE" in n["v1.s02.keyframe"]["prompt"]
-    assert "Ellora Zeolite Drops (Step 2)" in n["v1.s04.keyframe"]["prompt"]
-    assert "NATURAL HEAVY METAL DETOX SUPPORT" in n["v1.s04.keyframe"]["prompt"]
-    for s in ("s02", "s04", "s05"):
-        assert "Dietary Supplement" in n[f"v1.{s}.keyframe"]["prompt"]
-    assert n["v1.s04.keyframe"]["prompt"].lower().count("dietary supplement") >= 2
-    assert "the same woman" not in n["v1.s05.keyframe"]["prompt"].lower()
+    held = n["body.s01.keyframe"]["prompt"]
+    assert "Ellora Gut Cleanse (Step 1)" in held and "DIGESTIVE HEALTH & GUT BALANCE" in held
+    pack = n["body.s03.keyframe"]["prompt"]
+    for needle in ("Ellora Gut Cleanse (Step 1)", "DIGESTIVE HEALTH & GUT BALANCE",
+                   "Ellora Zeolite Drops (Step 2)", "NATURAL HEAVY METAL DETOX SUPPORT"):
+        assert needle in pack, needle
+    assert pack.lower().count("dietary supplement") >= 2 and "Dietary Supplement" in held
 
 
-def test_example_timeline_inputs_build(ad_dir):
+@pytest.mark.parametrize("variant", sorted(VARIANTS))
+def test_example_timeline_inputs_build(ad_dir, variant):
     manifest = load_manifest(ad_dir / "manifest.json")
-    node = manifest.nodes["v1.timeline"]
+    node = manifest.nodes[f"{variant}.timeline"]
     inputs = resolve_inputs(manifest, ad_dir, node)
     sources, media = {}, {}
     for dep in node.depends_on:
@@ -109,27 +151,18 @@ def test_example_timeline_inputs_build(ad_dir):
         sources[path] = dep
         media[path] = {"image": 0.0, "video": float(dn.inputs.get("duration", 0))}[dn.type]
     audio = frozenset(p for p, dep in sources.items() if manifest.nodes[dep].type == "video")
-    timeline = build_timeline("v1.timeline", inputs, sources=sources, project_dir=ad_dir, media=media,
-                              audio_paths=audio)
-    assert [e["audio"] for e in timeline["tracks"]["video"]] == [True] * 5
-    assert timeline["tracks"]["vo"] == [] and timeline["tracks"]["music"] is None
-    assert timeline["tracks"]["captions"][0]["start"] == 0.0 and timeline["warnings"] == []
-
-
-def test_example_config_assembles_for_real():
-    routing = yaml.safe_load(CONFIG.read_text())["routing"]
-    for t in ("timeline", "preview", "capcut_draft"):
-        assert routing[t]["provider"] == "assembly"
-    assert not {"tts", "sfx", "music"} & set(routing)
+    timeline = build_timeline(f"{variant}.timeline", inputs, sources=sources, project_dir=ad_dir,
+                              media=media, audio_paths=audio)
+    assert [e["audio"] for e in timeline["tracks"]["video"]] == [True] * 6
+    assert timeline["warnings"] == [] and timeline["placeholders"] == []
 
 
 def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
-    """Plays Claude's part: 'renders' each awaiting node (tiny real media via ffmpeg),
-    supplies it, and re-runs until the real preview and CapCut draft exist."""
+    """Plays Claude's part: 'renders' each awaiting node (tiny real media), supplies it, re-runs."""
     passes = 0
     while (code := main(["run", str(ad_dir)])) == 3:
         passes += 1
-        assert passes <= 3
+        assert passes <= 4
         capsys.readouterr()
         assert main(["external", str(ad_dir), "--json"]) == 0
         for item in json.loads(capsys.readouterr().out):
@@ -137,27 +170,29 @@ def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
                 keyframe = item["id"].replace(".clip", ".keyframe")
                 assert item["external_inputs"]["first_frame"] == f"ellora://{keyframe}"
                 f = ad_dir / f"{item['id']}.mp4"
-                asyncio.run(ffmpeg.run([  # Ellora clips carry their own audio (spoken line + sound)
+                asyncio.run(ffmpeg.run([
                     "-f", "lavfi", "-i", "color=c=gray:s=270x480:r=24",
                     "-f", "lavfi", "-i", "sine=frequency=330:sample_rate=48000",
                     "-t", str(item["inputs"]["duration"]), "-c:v", "libx264", "-preset", "ultrafast",
-                    "-pix_fmt", "yuv420p", "-c:a", "aac", str(f),
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(f),
                 ]))
             else:
-                assert "refs" not in item["inputs"]
+                if item["id"] == CAST or item["id"].replace(".keyframe", "") in NO_CAST:
+                    assert "refs" not in item["inputs"], item["id"]
+                else:
+                    assert item["external_inputs"]["refs"] == [f"ellora://{CAST}"], item["id"]
                 f = ad_dir / f"{item['id']}.png"
                 f.write_bytes(PNG_1X1)
             assert main(["supply", str(ad_dir), item["id"], str(f), "--ref", f"ellora://{item['id']}",
                          "--fingerprint", item["fingerprint"]]) == 0
-    assert code == 0 and passes == 2  # keyframes, then clips
-    timeline = json.loads((ad_dir / "v1" / "timeline.json").read_text())
-    assert timeline["placeholders"] == [] and timeline["warnings"] == []
-    assert [e["audio"] for e in timeline["tracks"]["video"]] == [True] * 5
-    info = asyncio.run(ffmpeg.probe(ad_dir / "v1" / "preview.mp4"))
-    assert (info.width, info.height) == (1080, 1920) and info.has_audio
-    assert info.duration == pytest.approx(timeline["duration"], abs=0.2)
-    draft = json.loads((ad_dir / "v1" / "capcut_draft" / "draft_content.json").read_text())
-    assert [m["material_name"] for m in draft["materials"]["videos"]] == [f"v1.{s}.clip" for s in SHOTS]
-    main_track = next(t for t in draft["tracks"] if t["name"] == "main")
-    assert [s["volume"] for s in main_track["segments"]] == [1.0] * 5
-    assert not [t for t in draft["tracks"] if t["type"] == "audio"]
+    assert code == 0 and passes == 3  # cast + packshot keyframe; keyframes (+ packshot clip); clips
+    for v, hook in VARIANTS.items():
+        timeline = json.loads((ad_dir / v / "timeline.json").read_text())
+        assert timeline["placeholders"] == []
+        info = asyncio.run(ffmpeg.probe(ad_dir / v / "preview.mp4"))
+        assert (info.width, info.height) == (1080, 1920) and info.has_audio
+        assert info.duration == pytest.approx(timeline["duration"], abs=0.2)
+        draft = json.loads((ad_dir / v / "capcut_draft" / "draft_content.json").read_text())
+        assert [m["material_name"] for m in draft["materials"]["videos"]] == [f"{x}.clip" for x in hook + BODY]
+    body_versions = {json.loads((ad_dir / "state.json").read_text())["nodes"][f"{b}.clip"]["version"] for b in BODY}
+    assert body_versions == {1}  # the shared body rendered exactly once

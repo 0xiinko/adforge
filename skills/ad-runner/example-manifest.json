@@ -1,76 +1,125 @@
 {
   "manifest_version": 1,
-  "project": "complete-kit-dustpan",
+  "project": "complete-kit-four-hooks",
   "nodes": [
     {
-      "id": "v1.s01.keyframe",
+      "id": "cast.maya.ref",
       "type": "image",
-      "prompt": "Photoreal vertical 9:16 frame. A woman in her late thirties stands at a kitchen counter in warm late-afternoon light, one hand resting on her stomach, a half-eaten salad beside her, expression tired and fed up. Natural, lived-in home kitchen, shallow depth of field. No text, no bottles.",
+      "prompt": "Photoreal vertical 9:16 waist-up portrait of Maya, a woman in her mid-thirties with warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings and an oversized cream knit sweater, looking straight into the camera, neutral relaxed expression, plain soft-grey backdrop, soft even window light from the left. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
       "inputs": {"aspect": "9:16"},
       "depends_on": []
     },
     {
+      "id": "v1.s01.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 frame. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) stands behind a bright, lived-in kitchen counter, a small pile of mismatched supplement tubs and tea boxes pushed to one side, arms folded, looking into the camera, unimpressed. Warm late-afternoon window light, shallow depth of field. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
+    },
+    {
       "id": "v1.s01.clip",
       "type": "video",
-      "prompt": "Slow push-in on the woman as she exhales and lets her hand drop from her stomach. Subtle, natural movement, steady camera, warm afternoon light holds. She looks into the camera and says, plainly and a little fed up, lips in sync: \"Bloated by three p.m. every day, whatever you eat?\" Natural ambient sound, no music.",
-      "inputs": {"first_frame": "@v1.s01.keyframe", "duration": 4, "aspect": "9:16"},
+      "prompt": "Slow push-in. Maya unfolds her arms and nods toward the pile of tubs, then back to the camera. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"Stop buying random cleanses that only do half the job.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@v1.s01.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["v1.s01.keyframe"]
     },
     {
       "id": "v1.s02.keyframe",
       "type": "image",
-      "prompt": "Photoreal vertical 9:16 packshot of Ellora Gut Cleanse (Step 1): a squat 30 mL amber-brown glass dropper bottle with round shoulders, a matte black ribbed child-resistant screw collar and a smooth black rubber dropper bulb, the liquid inside showing as a darker column, standing upright dead centre. Deep sea-green / teal label wrapping the lower two-thirds: \"Ellora\" in white in a clean geometric sans top left, \"Gut Cleanse\" set large and bold across two lines in white, a thin white rule, then \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals; on the right a white single-stroke line drawing of a looped, continuous intestine running the full height; a small white outlined circle reading \"30 SERVINGS\"; \"Dietary Supplement / 30 mL\" at the bottom left and \"(1 fl oz)\" at the bottom right; a thin vertical white rule just inside the left edge. Seamless warm greige backdrop, one soft key light from the upper left, soft shadow falling to the right, no props, no hands.",
-      "inputs": {"aspect": "9:16"},
-      "depends_on": []
+      "prompt": "Photoreal vertical 9:16 close-up. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) in the same bright kitchen, leaning slightly toward the camera with one eyebrow raised, a knowing half-smile. Warm late-afternoon window light. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
     },
     {
       "id": "v1.s02.clip",
       "type": "video",
-      "prompt": "Slow 15-degree orbit around the bottle. The label stays sharp and readable, light glints softly on the amber glass, backdrop and shadow stay steady. A warm, plain-spoken woman's voice, off camera, says: \"Most cleanses sell you step one and stop there.\" Natural ambient sound, no music.",
-      "inputs": {"first_frame": "@v1.s02.keyframe", "duration": 5, "aspect": "9:16"},
+      "prompt": "Static camera, very slight drift. Maya holds the raised eyebrow, then gives a small shrug. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"That's a broom with no dustpan.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@v1.s02.keyframe", "duration": 4, "aspect": "9:16"},
       "depends_on": ["v1.s02.keyframe"]
     },
     {
-      "id": "v1.s03.keyframe",
+      "id": "v2.s01.keyframe",
       "type": "image",
-      "prompt": "Photoreal vertical 9:16 frame, looking down. A wooden broom has swept a small pile of dust and crumbs into the middle of a clean, pale kitchen floor. There is no dustpan anywhere in the frame. Soft daylight, minimal composition, slightly wry mood. No people, no text, no bottles.",
+      "prompt": "Photoreal vertical 9:16 frame. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) sits at the same bright kitchen's small table, a loose stack of paper receipts in front of her, looking up into the camera with tired amusement. Warm late-afternoon window light. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
+    },
+    {
+      "id": "v2.s01.clip",
+      "type": "video",
+      "prompt": "Slow push-in. Maya rests her hand flat on the receipts and tilts her head. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"How much have you spent trying to feel normal again?\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@v2.s01.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["v2.s01.keyframe"]
+    },
+    {
+      "id": "v2.s02.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 close-up. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) at the same kitchen table, leaning in toward the camera, serious and kind. Warm late-afternoon window light. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
+    },
+    {
+      "id": "v2.s02.clip",
+      "type": "video",
+      "prompt": "Static camera. Maya holds eye contact and gives one small nod. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"Nobody told you what was missing.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@v2.s02.keyframe", "duration": 4, "aspect": "9:16"},
+      "depends_on": ["v2.s02.keyframe"]
+    },
+    {
+      "id": "body.s01.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 medium shot. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) in the same bright kitchen holds up Ellora Gut Cleanse (Step 1) beside her face, label toward the camera: a squat 30 mL amber-brown glass dropper bottle with a matte black ribbed collar and black rubber dropper bulb, deep sea-green / teal label with \"Ellora\" and \"Gut Cleanse\" in white, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white intestine line drawing, and \"Dietary Supplement / 30 mL\" legible at the bottom. Warm late-afternoon window light. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
+    },
+    {
+      "id": "body.s01.clip",
+      "type": "video",
+      "prompt": "Static camera, slight push-in. Maya keeps the bottle still beside her face, the label sharp and readable. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"It has to be a liquid. Not a capsule.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@body.s01.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["body.s01.keyframe"]
+    },
+    {
+      "id": "body.s02.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 close-up. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) in the same bright kitchen, hands out of frame, mid-thought, looking into the camera like she is letting you in on something. Warm late-afternoon window light. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
+    },
+    {
+      "id": "body.s02.clip",
+      "type": "video",
+      "prompt": "Static camera. Maya leans in a little, hands staying out of frame. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"And it needs a binder. This is the part nobody mentions.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@body.s02.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["body.s02.keyframe"]
+    },
+    {
+      "id": "body.s03.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 packshot of two identical squat 30 mL amber-brown glass dropper bottles with round shoulders, matte black ribbed child-resistant screw collars and smooth black rubber dropper bulbs, standing upright side by side, centred. Left: Ellora Gut Cleanse (Step 1), deep sea-green / teal label with \"Ellora\" in white top left, \"Gut Cleanse\" large and bold across two lines in white, a thin white rule, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white single-stroke intestine line drawing on the right, a \"30 SERVINGS\" circle, \"Dietary Supplement / 30 mL\" bottom left and \"(1 fl oz)\" bottom right. Right: Ellora Zeolite Drops (Step 2), identical layout on a dusty slate-blue label with \"Ellora\" top left, \"Zeolite Drops\" large and bold across two lines in white, a thin white rule, \"NATURAL HEAVY METAL DETOX SUPPORT\" in small white capitals, a white outline drawing of an elongated six-sided crystal on the right, the same \"30 SERVINGS\" circle, \"Dietary supplement / 30 mL\" and \"(1 fl oz)\" at the bottom. Seamless warm greige backdrop, one soft key light from the upper left, soft shadows falling to the right, no props, no hands. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
       "inputs": {"aspect": "9:16"},
       "depends_on": []
     },
     {
-      "id": "v1.s03.clip",
+      "id": "body.s03.clip",
       "type": "video",
-      "prompt": "The broom gives one last short sweep and stops. The dust pile just sits there; a faint drift of dust settles back around it. Camera holds still. The same warm woman's voice, off camera, says with a wry edge: \"That's a broom with no dustpan. What gets swept up just sits there.\" Natural ambient sound, no music.",
-      "inputs": {"first_frame": "@v1.s03.keyframe", "duration": 5, "aspect": "9:16"},
-      "depends_on": ["v1.s03.keyframe"]
+      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement. Off camera, in a warm, low, unhurried American woman's voice, a little dry and knowing, she says: \"Ellora is both steps. Gut Cleanse first, then Zeolite Drops.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@body.s03.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["body.s03.keyframe"]
     },
     {
-      "id": "v1.s04.keyframe",
+      "id": "body.s04.keyframe",
       "type": "image",
-      "prompt": "Photoreal vertical 9:16 packshot of two identical squat 30 mL amber-brown glass dropper bottles with round shoulders, matte black ribbed child-resistant screw collars and smooth black rubber dropper bulbs, standing upright side by side, centred. Left: Ellora Gut Cleanse (Step 1), deep sea-green / teal label with \"Ellora\" in white top left, \"Gut Cleanse\" large and bold across two lines in white, a thin white rule, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white single-stroke intestine line drawing on the right, a \"30 SERVINGS\" circle, \"Dietary Supplement / 30 mL\" bottom left and \"(1 fl oz)\" bottom right. Right: Ellora Zeolite Drops (Step 2), identical layout on a dusty slate-blue label with \"Ellora\" top left, \"Zeolite Drops\" large and bold across two lines in white, a thin white rule, \"NATURAL HEAVY METAL DETOX SUPPORT\" in small white capitals, a white outline drawing of an elongated six-sided crystal on the right, the same \"30 SERVINGS\" circle, \"Dietary supplement / 30 mL\" and \"(1 fl oz)\" at the bottom. Seamless warm greige backdrop, one soft key light from the upper left, soft shadows falling to the right, no props, no hands.",
-      "inputs": {"aspect": "9:16"},
-      "depends_on": []
+      "prompt": "Photoreal vertical 9:16 medium shot. Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater) back at the same bright kitchen counter, relaxed, a warm direct smile to the camera, hands resting on the counter. Warm late-afternoon window light. Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.",
+      "inputs": {"aspect": "9:16", "refs": ["@cast.maya.ref"]},
+      "depends_on": ["cast.maya.ref"]
     },
     {
-      "id": "v1.s04.clip",
+      "id": "body.s04.clip",
       "type": "video",
-      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement. The same warm woman's voice, off camera, says, calm and confident: \"Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush.\" Natural ambient sound, no music.",
-      "inputs": {"first_frame": "@v1.s04.keyframe", "duration": 5, "aspect": "9:16"},
-      "depends_on": ["v1.s04.keyframe"]
-    },
-    {
-      "id": "v1.s05.keyframe",
-      "type": "image",
-      "prompt": "Photoreal vertical 9:16 frame. A woman in her late thirties, relaxed and smiling slightly, at a bright kitchen counter, holding Ellora Gut Cleanse (Step 1) over a tall glass of water: a squat 30 mL amber-brown glass dropper bottle with a matte black ribbed collar and black rubber dropper bulb, deep sea-green / teal label with \"Ellora\" and \"Gut Cleanse\" in white, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white intestine line drawing, and \"Dietary Supplement / 30 mL\" legible at the bottom. Morning light, clean and calm.",
-      "inputs": {"aspect": "9:16"},
-      "depends_on": []
-    },
-    {
-      "id": "v1.s05.clip",
-      "type": "video",
-      "prompt": "She squeezes the dropper bulb and one dropperful falls into the glass of water, the liquid swirling darker for a moment before it settles. Calm, satisfied expression. Slow push-in. She looks up into the camera and says, relaxed and matter-of-fact, lips in sync: \"The Complete Kit is $49.99, with a 30-day money-back guarantee.\" Natural ambient sound, no music.",
-      "inputs": {"first_frame": "@v1.s05.keyframe", "duration": 4, "aspect": "9:16"},
-      "depends_on": ["v1.s05.keyframe"]
+      "prompt": "Slow push-in. Maya keeps the warm smile and points one finger down toward the bottom of the frame on the last words. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"Stop buying half a cleanse. Link below. Get the one with both steps.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "inputs": {"first_frame": "@body.s04.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["body.s04.keyframe"]
     },
     {
       "id": "v1.timeline",
@@ -78,18 +127,19 @@
       "inputs": {
         "aspect": "9:16",
         "shots": [
-          {"clip": "@v1.s01.clip", "duration": 4, "fallback": "@v1.s01.keyframe", "audio": true, "text": "Bloated by three p.m. every day, whatever you eat?"},
-          {"clip": "@v1.s02.clip", "duration": 5, "fallback": "@v1.s02.keyframe", "audio": true, "text": "Most cleanses sell you step one and stop there."},
-          {"clip": "@v1.s03.clip", "duration": 5, "fallback": "@v1.s03.keyframe", "audio": true, "text": "That's a broom with no dustpan. What gets swept up just sits there."},
-          {"clip": "@v1.s04.clip", "duration": 5, "fallback": "@v1.s04.keyframe", "audio": true, "text": "Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush."},
-          {"clip": "@v1.s05.clip", "duration": 4, "fallback": "@v1.s05.keyframe", "audio": true, "text": "The Complete Kit is $49.99, with a 30-day money-back guarantee."}
+          {"clip": "@v1.s01.clip", "duration": 5, "fallback": "@v1.s01.keyframe", "audio": true, "text": "Stop buying random cleanses that only do half the job."},
+          {"clip": "@v1.s02.clip", "duration": 4, "fallback": "@v1.s02.keyframe", "audio": true, "text": "That's a broom with no dustpan."},
+          {"clip": "@body.s01.clip", "duration": 5, "fallback": "@body.s01.keyframe", "audio": true, "text": "It has to be a liquid. Not a capsule."},
+          {"clip": "@body.s02.clip", "duration": 5, "fallback": "@body.s02.keyframe", "audio": true, "text": "And it needs a binder. This is the part nobody mentions."},
+          {"clip": "@body.s03.clip", "duration": 5, "fallback": "@body.s03.keyframe", "audio": true, "text": "Ellora is both steps. Gut Cleanse first, then Zeolite Drops."},
+          {"clip": "@body.s04.clip", "duration": 5, "fallback": "@body.s04.keyframe", "audio": true, "text": "Stop buying half a cleanse. Link below. Get the one with both steps."}
         ],
-        "end_card": {"text": "Complete Kit $49.99 · myellora.com", "duration": 2},
+        "end_card": {"text": "Complete Kit · myellora.com", "duration": 2},
         "captions": true
       },
       "depends_on": [
-        "v1.s01.clip", "v1.s02.clip", "v1.s03.clip", "v1.s04.clip", "v1.s05.clip",
-        "v1.s01.keyframe", "v1.s02.keyframe", "v1.s03.keyframe", "v1.s04.keyframe", "v1.s05.keyframe"
+        "v1.s01.clip", "v1.s02.clip", "body.s01.clip", "body.s02.clip", "body.s03.clip", "body.s04.clip",
+        "v1.s01.keyframe", "v1.s02.keyframe", "body.s01.keyframe", "body.s02.keyframe", "body.s03.keyframe", "body.s04.keyframe"
       ]
     },
     {
@@ -103,6 +153,39 @@
       "type": "capcut_draft",
       "inputs": {"timeline": "@v1.timeline"},
       "depends_on": ["v1.timeline"]
+    },
+    {
+      "id": "v2.timeline",
+      "type": "timeline",
+      "inputs": {
+        "aspect": "9:16",
+        "shots": [
+          {"clip": "@v2.s01.clip", "duration": 5, "fallback": "@v2.s01.keyframe", "audio": true, "text": "How much have you spent trying to feel normal again?"},
+          {"clip": "@v2.s02.clip", "duration": 4, "fallback": "@v2.s02.keyframe", "audio": true, "text": "Nobody told you what was missing."},
+          {"clip": "@body.s01.clip", "duration": 5, "fallback": "@body.s01.keyframe", "audio": true, "text": "It has to be a liquid. Not a capsule."},
+          {"clip": "@body.s02.clip", "duration": 5, "fallback": "@body.s02.keyframe", "audio": true, "text": "And it needs a binder. This is the part nobody mentions."},
+          {"clip": "@body.s03.clip", "duration": 5, "fallback": "@body.s03.keyframe", "audio": true, "text": "Ellora is both steps. Gut Cleanse first, then Zeolite Drops."},
+          {"clip": "@body.s04.clip", "duration": 5, "fallback": "@body.s04.keyframe", "audio": true, "text": "Stop buying half a cleanse. Link below. Get the one with both steps."}
+        ],
+        "end_card": {"text": "Complete Kit · myellora.com", "duration": 2},
+        "captions": true
+      },
+      "depends_on": [
+        "v2.s01.clip", "v2.s02.clip", "body.s01.clip", "body.s02.clip", "body.s03.clip", "body.s04.clip",
+        "v2.s01.keyframe", "v2.s02.keyframe", "body.s01.keyframe", "body.s02.keyframe", "body.s03.keyframe", "body.s04.keyframe"
+      ]
+    },
+    {
+      "id": "v2.preview",
+      "type": "preview",
+      "inputs": {"timeline": "@v2.timeline"},
+      "depends_on": ["v2.timeline"]
+    },
+    {
+      "id": "v2.capcut_draft",
+      "type": "capcut_draft",
+      "inputs": {"timeline": "@v2.timeline"},
+      "depends_on": ["v2.timeline"]
     }
   ]
 }

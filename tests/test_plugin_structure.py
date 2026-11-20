@@ -61,7 +61,8 @@ def test_ad_runner_points_at_its_examples_and_the_engine_loop():
     body = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
     for needle in ("example-manifest.json", "example-config.yaml", "adengine validate", "adengine run",
                    "adengine external", "adengine supply", "--fingerprint", "generateAudio: true",
-                   "check_generation", "adengine revise", "report.md", '"audio": true'):
+                   "check_generation", "adengine revise", "report.md", '"audio": true',
+                   "referenceImageUrls", '--only "cast.*"', "look at it before supplying", "cast.<id>.ref"):
         assert needle in body, needle
     assert "generateAudio: false" not in body and "tts" not in body
 
