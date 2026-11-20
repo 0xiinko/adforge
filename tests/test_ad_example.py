@@ -1,4 +1,5 @@
 """The manifest /ad writes (skills/ad-runner/example-manifest.json) must work with the engine."""
+import asyncio
 import json
 import re
 import shutil
@@ -111,7 +112,17 @@ def test_example_timeline_inputs_build(ad_dir):
     assert isinstance(timeline, dict) and timeline
 
 
-def test_example_runs_through_the_ellora_loop(ad_dir, capsys):
+def test_example_config_assembles_for_real():
+    routing = yaml.safe_load(CONFIG.read_text())["routing"]
+    for t in ("timeline", "preview", "capcut_draft"):
+        assert routing[t]["provider"] == "assembly"
+    for t in ("tts", "sfx", "music"):
+        assert routing[t]["provider"] == "mock_media"
+
+
+def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
+    """Plays Claude's part: 'renders' each awaiting node (tiny real media via ffmpeg),
+    supplies it, and re-runs until the real preview and CapCut draft exist."""
     passes = 0
     while (code := main(["run", str(ad_dir)])) == 3:
         passes += 1
@@ -123,7 +134,11 @@ def test_example_runs_through_the_ellora_loop(ad_dir, capsys):
                 keyframe = item["id"].replace(".clip", ".keyframe")
                 assert item["external_inputs"]["first_frame"] == f"ellora://{keyframe}"
                 f = ad_dir / f"{item['id']}.mp4"
-                f.write_bytes(b"clip")
+                asyncio.run(ffmpeg.run([
+                    "-f", "lavfi", "-i", "color=c=gray:s=270x480:r=24",
+                    "-t", str(item["inputs"]["duration"]), "-c:v", "libx264", "-preset", "ultrafast",
+                    "-pix_fmt", "yuv420p", str(f),
+                ]))
             else:
                 assert "refs" not in item["inputs"]
                 f = ad_dir / f"{item['id']}.png"
@@ -131,5 +146,10 @@ def test_example_runs_through_the_ellora_loop(ad_dir, capsys):
             assert main(["supply", str(ad_dir), item["id"], str(f), "--ref", f"ellora://{item['id']}",
                          "--fingerprint", item["fingerprint"]]) == 0
     assert code == 0 and passes == 2  # keyframes, then clips
-    assert (ad_dir / "v1" / "preview.mp4").exists()
-    assert (ad_dir / "v1" / "capcut_draft").is_dir()
+    timeline = json.loads((ad_dir / "v1" / "timeline.json").read_text())
+    assert timeline["placeholders"] == []
+    info = asyncio.run(ffmpeg.probe(ad_dir / "v1" / "preview.mp4"))
+    assert (info.width, info.height) == (1080, 1920) and info.has_audio
+    assert info.duration == pytest.approx(timeline["duration"], abs=0.2)
+    draft = json.loads((ad_dir / "v1" / "capcut_draft" / "draft_content.json").read_text())
+    assert [m["material_name"] for m in draft["materials"]["videos"]] == [f"v1.{s}.clip" for s in SHOTS]
