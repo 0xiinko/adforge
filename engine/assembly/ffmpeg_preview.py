@@ -1,5 +1,5 @@
 """ffmpeg preview renderer (spec §7): timeline.json → preview.mp4 with cuts and
-crossfades, mixed VO/SFX, ducked music, burned-in captions and an end card.
+crossfades, mixed VO/clip audio/SFX, ducked music, burned-in captions and an end card.
 
 Rendering is several small ffmpeg calls inside the node's work dir, using relative
 file names. User text reaches ffmpeg only via files (drawtext textfile=, .ass)."""
@@ -133,31 +133,38 @@ async def _mix_audio(ff: FFmpeg, tracks: dict, project_dir: Path, work_dir: Path
         count += 1
         return count - 1
 
-    vo_labels: list[str] = []
+    speech: list[str] = []
     for k, entry in enumerate(e for e in tracks["vo"] if e["path"]):
         i, ms = add(entry["path"]), round(entry["start"] * 1000)
         filters.append(f"[{i}:a]{AUDIO_FORMAT},adelay={ms}|{ms}[vo{k}]")
-        vo_labels.append(f"[vo{k}]")
-    if len(vo_labels) > 1:
-        filters.append(f"{''.join(vo_labels)}amix=inputs={len(vo_labels)}:normalize=0,apad=whole_dur={total:.3f}[vo]")
-    elif vo_labels:
-        filters.append(f"{vo_labels[0]}anull,apad=whole_dur={total:.3f}[vo]")
+        speech.append(f"[vo{k}]")
+    for k, entry in enumerate(e for e in tracks["video"] if e.get("audio")):
+        i, ms = add(entry["path"]), round(entry["start"] * 1000)
+        filters.append(f"[{i}:a]{AUDIO_FORMAT},atrim=0:{entry['duration']:.3f},asetpts=PTS-STARTPTS,"
+                       f"adelay={ms}|{ms}[ca{k}]")
+        speech.append(f"[ca{k}]")
+    # VO and the clips' own audio form one speech bus; padded to the full length so a
+    # ducking key never ends early (music must not go silent after the last line).
+    if len(speech) > 1:
+        filters.append(f"{''.join(speech)}amix=inputs={len(speech)}:normalize=0,apad=whole_dur={total:.3f}[sp]")
+    elif speech:
+        filters.append(f"{speech[0]}anull,apad=whole_dur={total:.3f}[sp]")
 
     buses: list[str] = []
     music = tracks["music"]
     if music:
         i = add(music["path"], loop=True)
         filters.append(f"[{i}:a]{AUDIO_FORMAT},atrim=0:{total:.3f},volume={music['volume']}[mus]")
-        if music["duck"] and vo_labels:
-            filters.append("[vo]asplit=2[vomix][vokey]")
-            filters.append("[mus][vokey]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[musd]")
-            buses += ["[vomix]", "[musd]"]
+        if music["duck"] and speech:
+            filters.append("[sp]asplit=2[spmix][spkey]")
+            filters.append("[mus][spkey]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[musd]")
+            buses += ["[spmix]", "[musd]"]
         else:
             buses.append("[mus]")
-            if vo_labels:
-                buses.append("[vo]")
-    elif vo_labels:
-        buses.append("[vo]")
+            if speech:
+                buses.append("[sp]")
+    elif speech:
+        buses.append("[sp]")
     for k, entry in enumerate(tracks["sfx"]):
         i, ms = add(entry["path"]), round(entry["start"] * 1000)
         filters.append(f"[{i}:a]{AUDIO_FORMAT},volume={entry['volume']},adelay={ms}|{ms}[fx{k}]")

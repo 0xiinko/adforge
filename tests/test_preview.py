@@ -151,3 +151,73 @@ def test_concat_filter_clamps_crossfade_to_short_shot():
     parts = graph.split(";")
     assert "[s0][s1]xfade=transition=fade:duration=0.200:offset=1.000[v1]" in parts
     assert "[v1][s2]concat=n=2:v=1:a=0[v2]" in parts
+
+
+def _clip_with_audio(seconds, color, freq):
+    return ["-f", "lavfi", "-i", f"color=c={color}:s=320x240:r=24",
+            "-f", "lavfi", "-i", f"sine=frequency={freq}:sample_rate=48000",
+            "-t", str(seconds), "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac"]
+
+
+def _clip_audio_timeline_inputs(files, **extra):
+    return {"aspect": "1:1", "captions": False,
+            "shots": [{"clip": files["c1"], "duration": 1.5, "audio": True, "text": "Hello"},
+                      {"clip": files["c2"], "duration": 1.2, "audio": True, "transition": "crossfade"}],
+            "end_card": {"text": "Shop", "duration": 0.8}, **extra}
+
+
+def test_clip_audio_alone_makes_a_full_length_mix(ffmpeg, tmp_path):
+    async def scenario():
+        project = tmp_path / "proj"
+        files = {
+            "c1": await _make(ffmpeg, project, "v1/shots/s01/clip.mp4", _clip_with_audio(1.5, "red", 330)),
+            "c2": await _make(ffmpeg, project, "v1/shots/s02/clip.mp4", _clip_with_audio(1.2, "green", 660)),
+        }
+        sources = {files["c1"]: "v1.s01.clip", files["c2"]: "v1.s02.clip"}
+        timeline = build_timeline("v1.timeline", _clip_audio_timeline_inputs(files), sources=sources,
+                                  project_dir=project, media=await _probe_all(ffmpeg, list(sources)),
+                                  audio_paths=frozenset(sources))
+        work = tmp_path / "work"
+        work.mkdir()
+        out = await render_preview(timeline, project, work, ffmpeg)
+        return timeline, await ffmpeg.probe(out), await _mean_volume(ffmpeg, out, 0.1, 1.2), \
+            await _mean_volume(ffmpeg, work / "mix.wav", 2.8, 0.6)
+
+    timeline, info, first_shot, end_card = asyncio.run(scenario())
+    assert [e["audio"] for e in timeline["tracks"]["video"]] == [True, True]
+    assert info.has_audio and first_shot > -60
+    assert end_card < -80
+    assert info.duration == pytest.approx(timeline["duration"], abs=0.15)
+
+
+def test_music_ducks_under_clip_audio(ffmpeg, tmp_path):
+    async def scenario():
+        project = tmp_path / "proj"
+        files = {
+            "c1": await _make(ffmpeg, project, "v1/shots/s01/clip.mp4", _clip_with_audio(1.5, "red", 330)),
+            "c2": await _make(ffmpeg, project, "v1/shots/s02/clip.mp4", _clip_with_audio(1.2, "green", 660)),
+            "bed": await _make(ffmpeg, project, "shared/music/bed.wav", _tone(1.0, 110)),
+        }
+        sources = {files["c1"]: "v1.s01.clip", files["c2"]: "v1.s02.clip", files["bed"]: "shared.music.bed"}
+        inputs = _clip_audio_timeline_inputs(files, music={"audio": files["bed"], "volume": 0.5})
+        timeline = build_timeline("v1.timeline", inputs, sources=sources, project_dir=project,
+                                  media=await _probe_all(ffmpeg, list(sources)), audio_paths=frozenset(sources))
+        work = tmp_path / "work"
+        work.mkdir()
+        calls = []
+        run = ffmpeg.run
+
+        async def spy(args, **kw):
+            calls.append(args)
+            return await run(args, **kw)
+
+        ffmpeg.run = spy
+        out = await render_preview(timeline, project, work, ffmpeg)
+        mix = next(a for a in calls if a[-1] == "mix.wav")
+        graph = mix[mix.index("-filter_complex") + 1]
+        return await ffmpeg.probe(out), await _mean_volume(ffmpeg, work / "mix.wav", 2.9, 0.5), graph
+
+    info, after_clips, graph = asyncio.run(scenario())
+    assert info.has_audio and info.duration == pytest.approx(3.5, abs=0.15)
+    assert "sidechaincompress" in graph and "[ca0]" in graph and "[ca1]" in graph
+    assert after_clips > -60   # the key is padded, so the ducked bed keeps playing after the clips end
