@@ -15,6 +15,10 @@ If the Ellora connector's `list_storyboards` returns any storyboards, read the o
 The user's copy is the script. Split it into beats; never paraphrase, reorder or "improve" it.
 
 - Split at sentence or clause boundaries into spoken lines that obey the line rules below (≤ 14 words, ≤ ~2.6 words per second of the shot). Keep the words exactly, word for word, including the user's grammar and voice; only the line breaks are yours.
+- Target ≤ 10 words per line (fits a 4 s shot); allow up to 13 only when a line can't be split cleanly — shot-planner then makes that shot 5 s. 14 words never fits.
+- A sentence longer than that is split mid-sentence at the nearest natural pause (a comma, "and", "but", "because", a breath point), keeping every word in order. If a split has to cut inside a clause, flag it in the claim-check section as `split mid-clause: <line>` so the user sees it at the gate.
+- In supplied mode the Structure section below (5 beats, hook/CTA placement) does not apply: the user's copy decides the beats. Captions are still yours to write (≤ 6 words, from the line's own words) and go through the claim check.
+- A claim hit that spans two split lines quotes the whole original sentence in the table.
 - With **hooks + shared body**: `vN/script.md` holds only hook N's beats; `body/script.md` holds the body's beats, written once. The ad for variant N is its hook followed by the body.
 - Long copy makes long ads (a 60-second script is ~15 shots). Say so in the plan's assumptions; do not cut copy to fit a length default.
 - The claim check below still applies to every line. A hit keeps the original line in the table and adds a compliant rewrite; the user decides at the gate. Nothing with an open hit renders.
@@ -31,7 +35,7 @@ When the plan says **Script source: written**, write the script yourself followi
 
 ## Lines
 
-- One spoken line per beat, said inside that shot's clip by a cast member: on camera (lip-synced) or off camera (their voice over a shot without them). Speakers are role names (`presenter`, `friend`), not cast ids: cast-designer maps each role to a cast id in `cast.md`. Write the speaker as `role (on camera)` or `role (off camera)`. Ellora renders the line with the clip, so there is no separate voiceover. **14 words or fewer**, spoken naturally, and short enough for its shot: at most ~2.6 words per second (≤ 10 words for a 4 s shot, ≤ 13 for 5 s).
+- One spoken line per beat, said inside that shot's clip by a cast member: on camera (lip-synced) or off camera (their voice over a shot without them). Speakers are role names (`presenter`, `friend`), not cast ids: cast-designer maps each role to a cast id in `cast.md`. Write the speaker as `role (on camera)` or `role (off camera)`. Once `cast.md` exists (variant scripts are written after it), copy each speaker's role exactly as its `Role:` line says. Ellora renders the line with the clip, so there is no separate voiceover. **14 words or fewer**, spoken naturally, and short enough for its shot: at most ~2.6 words per second (≤ 10 words for a 4 s shot, ≤ 13 for 5 s).
 - One on-screen caption per beat (may repeat the line's key words; ≤ 6 words).
 - Tone: plain, unembarrassed, a bit conspiratorial about what the industry leaves out. Not clinical. Not wellness-influencer.
 - No music: the clips carry natural sound only (music can be added later in CapCut).
