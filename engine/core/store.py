@@ -22,6 +22,9 @@ class NodeState:
     message: str | None = None
     pinned_version: int | None = None
     built_from: dict[str, int] | None = None  # dependency versions at commit; None in old state files
+    expected_fingerprint: str | None = None  # set while awaiting_external (spec: ellora §3.3)
+    external: dict | None = None             # {"provider", "ref", "id"} of the current version, if supplied
+    external_history: dict[str, dict] | None = None  # str(version) → external metadata, for rollback
 
 
 def _remove(path: Path) -> None:
@@ -113,6 +116,8 @@ class ProjectStore:
         else:
             st.fingerprint = fingerprint
         st.reason = None
+        st.expected_fingerprint = None
+        st.external = None  # supply() sets it again for supplied files
         st.message = None
         self.save()
         return st.version

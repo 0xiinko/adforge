@@ -136,3 +136,24 @@ def assert_golden(name: str, data) -> None:
         path.write_text(text)
     assert path.exists(), f"missing golden file {path}; run with ADFORGE_UPDATE_GOLDEN=1 and review it"
     assert json.loads(path.read_text()) == json.loads(text)
+
+
+ELLORA_CONFIG = {
+    "retry": {"base_delay_s": 0},
+    "default_concurrency": 8,
+    "external_providers": ["ellora"],
+    "routing": {
+        "image": {"provider": "ellora", "model": "ellora-image"},
+        "video": {"provider": "ellora", "model": "ellora-video"},
+    },
+}
+ELLORA = EngineConfig.from_dict(ELLORA_CONFIG)
+
+
+def make_ellora_manifest(**kw) -> dict:
+    """make_manifest() with every image/video node fit for an external provider
+    (one candidate per image: inputs.n removed)."""
+    data = make_manifest(**kw)
+    for n in data["nodes"]:
+        n.get("inputs", {}).pop("n", None)
+    return data

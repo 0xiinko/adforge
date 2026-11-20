@@ -23,7 +23,7 @@
         "prompt": {"type": "string"},
         "inputs": {"type": "object"},
         "depends_on": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-        "status": {"enum": ["pending", "running", "done", "failed", "blocked", "needs_review"]},
+        "status": {"enum": ["pending", "running", "done", "failed", "blocked", "needs_review", "awaiting_external"]},
         "version": {"type": "integer", "minimum": 1}
       }
     }

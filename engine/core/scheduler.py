@@ -25,6 +25,7 @@ from engine.providers.base import (
 Outcome = tuple[str, str | None, str | None]  # (status, reason, message)
 
 FINISHED = frozenset({"done", "failed", "needs_review", "blocked"})
+HELD_EXTERNAL = frozenset({("failed", "external"), ("needs_review", "refused")})
 
 
 @dataclass
@@ -34,10 +35,11 @@ class RunReport:
     failed: list[str] = field(default_factory=list)
     needs_review: list[str] = field(default_factory=list)
     blocked: list[str] = field(default_factory=list)
+    awaiting: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
-        return not (self.failed or self.needs_review or self.blocked)
+        return not (self.failed or self.needs_review or self.blocked or self.awaiting)
 
 
 class Scheduler:
@@ -72,16 +74,32 @@ class Scheduler:
         report = RunReport()
         status: dict[str, str] = {}
 
+        def block_downstream(nid: str, outcome: str) -> None:
+            downstream = m.descendants([nid])
+            for d in order:
+                if d in downstream and status.get(d) == "pending" and m.nodes[d].type not in ASSEMBLY_TYPES:
+                    status[d] = "blocked"
+                    self.store.update(d, status="blocked", reason=f"upstream {nid} {outcome}", message=None)
+                    report.blocked.append(d)
+
         stale = self.store.stale_nodes(m, fps, order)
+        held: list[str] = []
         for nid in order:
             if nid not in stale:
                 status[nid] = "done"
                 report.skipped.append(nid)
                 if self.store.get(nid).status != "done":
                     self.store.update(nid, status="done", reason=None, message=None)
+            elif self._held_external(m.nodes[nid], fps[nid]):
+                st = self.store.get(nid)
+                status[nid] = st.status
+                (report.failed if st.status == "failed" else report.needs_review).append(nid)
+                held.append(nid)
             else:
                 status[nid] = "pending"
                 self.store.update(nid, status="pending", reason=None, message=None)
+        for nid in held:
+            block_downstream(nid, status[nid])
 
         running: dict[asyncio.Task, str] = {}
 
@@ -94,6 +112,16 @@ class Scheduler:
         def launch_ready() -> None:
             for nid in order:
                 if status[nid] == "pending" and ready(nid):
+                    route = self.config.external_route(m.nodes[nid])
+                    if route is not None:  # rendered outside the engine; wait for `adengine supply`
+                        status[nid] = "awaiting_external"
+                        self.store.update(
+                            nid, status="awaiting_external", reason="external",
+                            message=f"render in {route.provider}, then adengine supply",
+                            expected_fingerprint=fps[nid],
+                        )
+                        report.awaiting.append(nid)
+                        continue
                     status[nid] = "running"
                     self.store.update(nid, status="running")
                     running[asyncio.create_task(self._run_node(nid, fps[nid]))] = nid
@@ -114,14 +142,19 @@ class Scheduler:
                     continue
                 self.store.update(nid, status=outcome, reason=reason, message=message)
                 (report.failed if outcome == "failed" else report.needs_review).append(nid)
-                downstream = m.descendants([nid])
-                for d in order:
-                    if d in downstream and status[d] == "pending" and m.nodes[d].type not in ASSEMBLY_TYPES:
-                        status[d] = "blocked"
-                        self.store.update(d, status="blocked", reason=f"upstream {nid} {outcome}", message=None)
-                        report.blocked.append(d)
+                block_downstream(nid, outcome)
             launch_ready()
         return report
+
+    def _held_external(self, node: Node, fingerprint: str) -> bool:
+        """An external failure reported via `adengine supply --failed/--refused` stays put
+        until the node changes (its fingerprint moves), instead of being re-listed as awaiting."""
+        st = self.store.get(node.id)
+        return (
+            (st.status, st.reason) in HELD_EXTERNAL
+            and st.expected_fingerprint == fingerprint
+            and self.config.external_route(node) is not None
+        )
 
     async def _run_node(self, nid: str, fingerprint: str) -> Outcome:
         node = self.manifest.nodes[nid]
