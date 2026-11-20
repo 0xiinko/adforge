@@ -48,3 +48,32 @@ def test_font_option_prefers_font_file():
 def test_ffmpeg_failure_reports_stderr(ffmpeg, tmp_path):
     with pytest.raises(ProviderError, match="ffmpeg failed"):
         asyncio.run(ffmpeg.run(["-i", "does-not-exist.mp4", "out.mp4"], cwd=tmp_path))
+
+
+class _FakeProc:
+    returncode = 0
+
+    async def communicate(self):
+        return b"{}", b""
+
+
+def _capture_exec(monkeypatch):
+    calls = []
+
+    async def fake_exec(*args, **kwargs):
+        calls.append((args, kwargs))
+        return _FakeProc()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
+    return calls
+
+
+def test_run_never_reads_stdin(monkeypatch, tmp_path):
+    calls = _capture_exec(monkeypatch)
+    ff = FFmpeg(AssemblyConfig(ffmpeg="ffmpeg-x", ffprobe="ffprobe-x"))
+    asyncio.run(ff.run(["-i", "a.wav", "b.wav"]))
+    asyncio.run(ff.probe(tmp_path / "a.wav"))
+    (run_args, run_kwargs), (_, probe_kwargs) = calls
+    assert run_args[:2] == ("ffmpeg-x", "-nostdin")
+    assert run_kwargs["stdin"] == asyncio.subprocess.DEVNULL
+    assert probe_kwargs["stdin"] == asyncio.subprocess.DEVNULL

@@ -46,7 +46,7 @@ class FFmpeg:
     async def _exec(self, args: list[str], cwd: Path | None) -> str:
         try:
             proc = await asyncio.create_subprocess_exec(
-                *args, cwd=cwd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                *args, cwd=cwd, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
         except FileNotFoundError:
             raise ProviderError(
@@ -59,7 +59,7 @@ class FFmpeg:
         return out.decode(errors="replace")
 
     async def run(self, args: list[str], cwd: Path | None = None) -> None:
-        await self._exec([self.ffmpeg, "-hide_banner", "-loglevel", "error", "-y", *args], cwd)
+        await self._exec([self.ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y", *args], cwd)
 
     async def probe(self, path: Path) -> MediaInfo:
         out = await self._exec([
