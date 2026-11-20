@@ -187,6 +187,29 @@ def test_an_attached_document_is_the_brief():
         assert needle in strategist, needle
 
 
+@pytest.mark.parametrize("folder", ["commands", "skills", "agents"])
+def test_project_claude_folder_exposes_the_plugin_without_install(folder):
+    # Claude Code (terminal or the desktop app's Code tab) loads .claude/commands, .claude/skills
+    # and .claude/agents from the open project, so /ad works with no plugin install.
+    link = ROOT / ".claude" / folder
+    assert link.is_symlink(), f".claude/{folder} must be a symlink"
+    assert link.readlink() == Path("..") / folder
+    assert link.resolve() == (ROOT / folder).resolve()
+
+
+def test_project_claude_folder_finds_every_stage():
+    assert (ROOT / ".claude" / "commands" / "ad.md").is_file()
+    for skill in SKILLS:
+        assert (ROOT / ".claude" / "skills" / skill / "SKILL.md").is_file(), skill
+    assert (ROOT / ".claude" / "agents" / "variant-writer.md").is_file()
+
+
+def test_ad_names_each_stage_file_as_a_fallback():
+    command = (ROOT / "commands" / "ad.md").read_text()
+    assert "`skills/<name>/SKILL.md`" in command
+    assert "`agents/variant-writer.md`" in command
+
+
 def test_task6_review_fixes():
     runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
     assert "any `Notes:` lines from the scripts" in runner and "they do not block approval" in runner
