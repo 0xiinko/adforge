@@ -11,11 +11,12 @@ If the brief is empty, ask the user for one (product, angle or audience, anythin
 
 Run these stages in order. Each stage is a skill in this plugin; follow it exactly and let it write its file before moving on.
 
-1. **ad-strategist** — brand file, slug, `brief.md`, `plan.md`.
-2. **script-writer** — `v1/script.md` with the claim check.
-3. **shot-planner** — `v1/shots.md`.
-4. **prompt-craft** — `v1/prompts.md`.
-   When `plan.md` has more than one variant, do stages 2–4 for v1 yourself and dispatch one **variant-writer** agent per other variant, in parallel, then wait for all of them.
-5. **ad-runner** — manifest and config, then **the gate: stop and wait for the user's approval**. Only after approval: the Ellora render loop, the report, and revisions.
+1. **ad-strategist** — brand file, slug, `brief.md`, `script-source.md` (supplied scripts), `plan.md`.
+2. **script-writer** — `v1/script.md` (and `body/script.md` for hooks + shared body) with the claim check.
+3. **cast-designer** — `cast.md`: one look phrase, voice phrase and reference prompt per person.
+4. **shot-planner** — `v1/shots.md` (and `body/shots.md`).
+5. **prompt-craft** — `v1/prompts.md` (and `body/prompts.md`).
+   When `plan.md` has more than one variant, do stages 2–5 for v1 and the body yourself, then dispatch one **variant-writer** agent per other variant, in parallel, and wait for all of them. The body is written once, never per variant.
+6. **ad-runner** — manifest and config, the cast preview (only with the user's OK), then **the gate: stop and wait for the user's approval**. Only after approval: the Ellora render loop, the report, and revisions.
 
-Never call Ellora's `generate_image` or `generate_video` before the user approves the gate.
+Never call Ellora's `generate_image` or `generate_video` before the user agrees: the cast preview needs its own OK, everything else needs the gate.

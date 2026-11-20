@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS = ["ad-strategist", "script-writer", "shot-planner", "prompt-craft", "ad-runner"]
+SKILLS = ["ad-strategist", "script-writer", "cast-designer", "shot-planner", "prompt-craft", "ad-runner"]
 
 
 def frontmatter(path: Path) -> dict:
@@ -80,4 +80,11 @@ def test_strategist_detects_supplied_scripts_and_story():
                    "script-source.md", "The brief's story wins", "Never invent a script",
                    ".pdf", "the Read tool reads PDFs", "- Script source: <supplied | written>", "## Body",
                    "*(from the script)*", "ask the user before choosing"):
+        assert needle in body, needle
+
+
+def test_cast_designer_defines_fixed_phrases():
+    body = (ROOT / "skills" / "cast-designer" / "SKILL.md").read_text()
+    for needle in ("cast.md", "Look phrase", "Voice phrase", "Reference prompt", "cast.<id>.ref",
+                   "word for word", "No cast"):
         assert needle in body, needle
