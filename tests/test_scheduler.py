@@ -70,16 +70,17 @@ def test_dependents_start_as_soon_as_their_inputs_finish(project_dir):
     assert p.events.index(("start", "v1.s01.clip")) < p.events.index(("end", "v2.s02.keyframe"))
 
 
-def test_hard_failure_blocks_only_dependents(project_dir):
+def test_hard_failure_blocks_generation_dependents_only(project_dir):
     report = run(project_dir, RecordingProvider(fail={"v1.s01.keyframe"}))
     assert not report.ok
     assert report.failed == ["v1.s01.keyframe"]
-    assert set(report.blocked) == V1_S01_CHAIN - {"v1.s01.keyframe"}
+    assert report.blocked == ["v1.s01.clip"]
     store = ProjectStore(project_dir)
     st = store.get("v1.s01.keyframe")
     assert (st.status, st.reason) == ("failed", "error") and "boom" in st.message
-    assert store.get("v1.timeline").reason == "upstream v1.s01.keyframe failed"
-    assert all(store.get(n).status == "done" for n in ("v2.preview", "v2.capcut_draft", "v1.s02.clip"))
+    assert store.get("v1.s01.clip").reason == "upstream v1.s01.keyframe failed"
+    for n in ("v1.timeline", "v1.preview", "v1.capcut_draft", "v2.preview", "v1.s02.clip"):
+        assert store.get(n).status == "done", n
 
 
 def test_resume_after_failure_runs_only_unfinished_nodes(project_dir):
@@ -116,7 +117,8 @@ def test_transient_errors_give_up_after_max_attempts(project_dir):
 def test_refusal_goes_to_needs_review(project_dir):
     report = run(project_dir, RecordingProvider(refuse={"v2.s01.clip"}))
     assert report.needs_review == ["v2.s01.clip"]
-    assert set(report.blocked) == {"v2.timeline", "v2.preview", "v2.capcut_draft"}
+    assert report.blocked == []
+    assert {"v2.timeline", "v2.preview", "v2.capcut_draft"} <= set(report.ran)
     st = ProjectStore(project_dir).get("v2.s01.clip")
     assert (st.status, st.reason, st.message) == ("needs_review", "refused", "content policy")
 
@@ -154,7 +156,7 @@ class MissingFileTTS(RecordingProvider):
 def test_commit_failure_is_isolated_to_the_node(project_dir):
     report = run(project_dir, MissingFileTTS())
     assert sorted(report.failed) == ["v1.vo.l01", "v2.vo.l01"]
-    assert {"v1.timeline", "v2.timeline"} <= set(report.blocked)
+    assert {"v1.timeline", "v2.timeline"} <= set(report.ran)
     store = ProjectStore(project_dir)
     states = {n: store.get(n).status for n in load_manifest(project_dir / "manifest.json").nodes}
     assert "running" not in states.values()
@@ -226,3 +228,16 @@ def test_assembly_nodes_get_project_dir_and_sources(project_dir):
     }
     assert p.contexts["v1.s01.clip"].sources == {}
     assert p.contexts["v1.s01.clip"].project_dir == project_dir
+
+
+def test_assembly_waits_until_every_input_has_finished(project_dir):
+    p = RecordingProvider(fail={"v1.s01.keyframe"}, delays={"v1.s02.clip": 0.2})
+    run(project_dir, p)
+    assert p.events.index(("start", "v1.timeline")) > p.events.index(("end", "v1.s02.clip"))
+
+
+def test_assembly_rebuilds_when_a_failed_input_recovers(project_dir):
+    run(project_dir, RecordingProvider(fail={"v1.s01.keyframe"}))
+    p = RecordingProvider()
+    assert run(project_dir, p).ok
+    assert {"v1.timeline", "v1.preview", "v1.capcut_draft"} <= set(p.calls)

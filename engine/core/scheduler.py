@@ -24,6 +24,8 @@ from engine.providers.base import (
 
 Outcome = tuple[str, str | None, str | None]  # (status, reason, message)
 
+FINISHED = frozenset({"done", "failed", "needs_review", "blocked"})
+
 
 @dataclass
 class RunReport:
@@ -83,9 +85,15 @@ class Scheduler:
 
         running: dict[asyncio.Task, str] = {}
 
+        def ready(nid: str) -> bool:
+            node = m.nodes[nid]
+            if node.type in ASSEMBLY_TYPES:  # spec §8: assemble with placeholders
+                return all(status[d] in FINISHED for d in node.depends_on)
+            return all(status[d] == "done" for d in node.depends_on)
+
         def launch_ready() -> None:
             for nid in order:
-                if status[nid] == "pending" and all(status[d] == "done" for d in m.nodes[nid].depends_on):
+                if status[nid] == "pending" and ready(nid):
                     status[nid] = "running"
                     self.store.update(nid, status="running")
                     running[asyncio.create_task(self._run_node(nid, fps[nid]))] = nid
@@ -108,7 +116,7 @@ class Scheduler:
                 (report.failed if outcome == "failed" else report.needs_review).append(nid)
                 downstream = m.descendants([nid])
                 for d in order:
-                    if d in downstream and status[d] == "pending":
+                    if d in downstream and status[d] == "pending" and m.nodes[d].type not in ASSEMBLY_TYPES:
                         status[d] = "blocked"
                         self.store.update(d, status="blocked", reason=f"upstream {nid} {outcome}", message=None)
                         report.blocked.append(d)
