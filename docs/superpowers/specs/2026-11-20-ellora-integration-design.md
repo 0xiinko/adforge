@@ -68,6 +68,8 @@ external: dict | None = None              # {"provider": "ellora", "ref": "<Ello
 
 `external` is kept on the committed version, so later nodes can refer to the Ellora copy of this output. Older state files load with both fields set to `None`.
 
+`external_history: dict[str, dict] | None` keeps that metadata per version, so `rollback` restores the Ellora path that belongs to the restored file.
+
 ### 3.4 `adengine external <project> [--json]`
 
 Lists every `awaiting_external` node. With `--json`, each entry is:
@@ -80,18 +82,18 @@ Lists every `awaiting_external` node. With `--json`, each entry is:
   "model": "<modelId>",
   "prompt": "…",
   "inputs": {"aspect": "9:16", "refs": ["/abs/path/refs/product_hero.png"]},
-  "ellora_inputs": {"refs": ["<Ellora path of refs.product_hero>"]},
+  "external_inputs": {"aspect": "9:16", "refs": ["<Ellora path of refs.product_hero>"]},
   "fingerprint": "<expected_fingerprint>"
 }
 ```
 
 - `inputs` are resolved as usual (refs become absolute local paths).
-- `ellora_inputs` maps each `@ref` input to that node's stored `external.ref`. This is what Claude passes to Ellora (`referenceImageUrls`, `firstFrameUrl`). Plain-text inputs and public `http(s)` URLs pass through unchanged.
+- `external_inputs` maps each `@ref` input to that node's stored `external.ref`. This is what Claude passes to Ellora (`referenceImageUrls`, `firstFrameUrl`). Plain-text inputs and public `http(s)` URLs pass through unchanged.
 
 ### 3.5 `adengine supply`
 
 ```
-adengine supply <project> <node_id> <file> --ellora-ref <path> [--ellora-id <id>] [--fingerprint <fp>]
+adengine supply <project> <node_id> <file> --ref <path> [--id <id>] [--fingerprint <fp>]
 adengine supply <project> <node_id> --failed "<message>"
 adengine supply <project> <node_id> --refused "<message>"
 ```
@@ -99,7 +101,7 @@ adengine supply <project> <node_id> --refused "<message>"
 - **Checks:** the node exists, it is external, its status is `awaiting_external`, and its current fingerprint equals `expected_fingerprint` (and `--fingerprint` if given). If not, it stops with an error naming the mismatch, e.g. the node was revised after `external` listed it.
 - **File:** copied (not moved) into the node's work dir, then committed through `ProjectStore.commit` with the expected fingerprint, so versioning and rollback behave exactly as for an engine render. The extension must match the node type (`.png`/`.jpg`/`.webp` for image, `.mp4` for video). A `.jpg` or `.webp` image is converted to PNG with the configured ffmpeg before commit, so the output keeps the node's normal `.png` path.
 - **Metadata:** stores `external = {provider, ref, id}`, clears `expected_fingerprint`, and writes a ledger entry: `provider`, `model`, `cost_usd: 0.0`, `attempt: 1`, `ok: true`, plus `external_id`.
-- **`--failed` / `--refused`:** set the node to `failed` (reason `external`) or `needs_review` (reason `refused`) with the message, and write a ledger entry with `ok: false`. The next `run` treats them like any failed or needs_review node.
+- **`--failed` / `--refused`:** set the node to `failed` (reason `external`) or `needs_review` (reason `refused`) with the message, and write a ledger entry with `ok: false`. The node keeps its `expected_fingerprint`, and while its fingerprint is unchanged every `run` reports it as failed / needs_review (it is not listed as awaiting again) and blocks its dependents. A `revise` changes the fingerprint, so the next `run` puts it back to `awaiting_external`.
 - `supply` does not run anything. Claude calls `run` afterwards to continue the pipeline.
 
 ### 3.6 Validation
@@ -117,10 +119,10 @@ External image nodes must have `n` absent or `1`. Ellora returns one image per c
 1. `adengine run <project>`. Exit code `3` means nodes are awaiting.
 2. `adengine external <project> --json`.
 3. For each node, in dependency order (an external video waits for its external keyframe):
-   - image: `generate_image` with the prompt, `modelId`, `aspectRatio` and `referenceImageUrls` from `ellora_inputs`. Independent images run in parallel.
-   - video: `generate_video` with the prompt, `modelId`, `durationSec`, `aspectRatio` and `firstFrameUrl` from `ellora_inputs`. Then `check_generation` with `wait: true` until it finishes or fails.
+   - image: `generate_image` with the prompt, `modelId`, `aspectRatio` and `referenceImageUrls` from `external_inputs`. Independent images run in parallel.
+   - video: `generate_video` with the prompt, `modelId`, `durationSec`, `aspectRatio` and `firstFrameUrl` from `external_inputs`. Then `check_generation` with `wait: true` until it finishes or fails.
    - Download the finished file from the link `check_generation` returns into `projects/<slug>/.tmp/ellora/`.
-   - `adengine supply … --ellora-ref <Ellora path> --ellora-id <id>`, or `--failed` / `--refused` with Ellora's message.
+   - `adengine supply … --ref <Ellora path> --id <id>`, or `--failed` / `--refused` with Ellora's message.
 4. Back to step 1 until `run` exits `0` or `1`.
 
 Because dependents of a keyframe can't start until it is supplied, the loop usually takes two passes per variant: keyframes, then clips. Revisions reuse the same loop: `revise` changes the fingerprint, so the node goes back to `awaiting_external` on the next run.
@@ -142,7 +144,7 @@ A refusal is rewritten once by Claude via `revise` (same rule as spec §8). A se
 - Config: `external_providers` parsed; external routing on a non-image/video type is rejected; dry-run labels external nodes.
 - Scheduler: a stale external node becomes `awaiting_external` with `expected_fingerprint`; its dependents and assembly wait (not blocked, no placeholder); unrelated nodes finish; `RunReport.awaiting` is filled; a fresh external node is cached.
 - `supply`: commits, versions and archives the old output, stores `external`, writes the ledger entry, and a following `run` finishes the dependents; rejects a stale fingerprint, a node that isn't awaiting, a non-external node, and a wrong extension; `--failed` and `--refused` map to the right statuses and block dependents on the next run.
-- `external --json`: resolved inputs and `ellora_inputs` mapped from the stored `external.ref`.
+- `external --json`: resolved inputs and `external_inputs` mapped from the stored `external.ref`.
 - Validation: an external node referencing a non-external node is an error.
 - CLI: exit code `3` when only awaiting; `1` wins over `3`.
 - State: an old `state.json` without the new fields still loads.
