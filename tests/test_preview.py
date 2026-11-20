@@ -114,7 +114,7 @@ def test_placeholder_only_preview_without_audio(ffmpeg, tmp_path):
 
 async def _mean_volume(ff, path, start, length):
     proc = await asyncio.create_subprocess_exec(
-        "ffmpeg", "-hide_banner", "-ss", str(start), "-t", str(length), "-i", str(path),
+        ff.ffmpeg, "-hide_banner", "-nostdin", "-ss", str(start), "-t", str(length), "-i", str(path),
         "-af", "volumedetect", "-f", "null", "-", stderr=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE)
     _, err = await proc.communicate()
     for line in err.decode().splitlines():
@@ -147,7 +147,7 @@ def test_ducked_music_stays_audible_after_vo_ends(ffmpeg, tmp_path):
 
 
 def test_concat_filter_clamps_crossfade_to_short_shot():
-    graph, _ = build_concat_filter([1.0, 0.2, 1.0], [("cut", 0.0), ("crossfade", 0.25), ("cut", 0.0)], 30)
+    graph, _ = build_concat_filter([1.25, 0.2, 1.0], [("cut", 0.0), ("crossfade", 0.25), ("cut", 0.0)], 30)
     parts = graph.split(";")
-    assert "[s0][s1]xfade=transition=fade:duration=0.200:offset=0.800[v1]" in parts
+    assert "[s0][s1]xfade=transition=fade:duration=0.200:offset=1.000[v1]" in parts
     assert "[v1][s2]concat=n=2:v=1:a=0[v2]" in parts

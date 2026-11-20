@@ -64,10 +64,10 @@ def build_concat_filter(lengths: list[float], transitions: list[tuple[str, float
     acc, acc_len = "[s0]", lengths[0]
     for k in range(1, len(lengths)):
         kind, seconds = transitions[k]
-        seconds = min(seconds, lengths[k], acc_len)
         label = f"[v{k}]"
         if kind == "crossfade":
-            parts.append(f"{acc}[s{k}]xfade=transition=fade:duration={seconds:.3f}:offset={acc_len - seconds:.3f}{label}")
+            fade = min(seconds, lengths[k], acc_len)
+            parts.append(f"{acc}[s{k}]xfade=transition=fade:duration={fade:.3f}:offset={acc_len - seconds:.3f}{label}")
             acc_len += lengths[k] - seconds
         else:
             parts.append(f"{acc}[s{k}]concat=n=2:v=1:a=0{label}")
