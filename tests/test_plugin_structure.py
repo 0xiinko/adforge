@@ -95,3 +95,13 @@ def test_cast_designer_defines_fixed_phrases():
 def test_ad_command_updates_cast_when_a_person_changes():
     body = (ROOT / "commands" / "ad.md").read_text()
     assert "update `cast.md`" in body
+
+
+def test_writer_and_planner_handle_supplied_scripts_and_shared_body():
+    writer = (ROOT / "skills" / "script-writer" / "SKILL.md").read_text()
+    planner = (ROOT / "skills" / "shot-planner" / "SKILL.md").read_text()
+    for needle in ("Script source: supplied", "script-source.md", "word for word", "never paraphrase",
+                   "body/script.md", "compliant rewrite"):
+        assert needle in writer, needle
+    for needle in ("body/shots.md", "body.s01", "Cast", "cast.md"):
+        assert needle in planner, needle
