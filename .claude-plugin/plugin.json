@@ -1,0 +1,5 @@
+{
+  "name": "adforge",
+  "version": "0.1.0",
+  "description": "AdForge: turn an ad brief into rendered short-form ad variants with one approval gate. /ad for Ellora renders every image and video in Ellora Studio through the adengine render loop."
+}
