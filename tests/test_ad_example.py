@@ -1,5 +1,6 @@
 """The manifest /ad writes (skills/ad-runner/example-manifest.json) must work with the engine."""
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -59,16 +60,28 @@ def test_example_manifest_shape():
         vo = n[f"v1.vo.l{i:02d}"]
         assert vo["type"] == "tts" and len(vo["inputs"]["text"].split()) <= 14
     assert n["v1.music.bed"]["inputs"]["duration"] == total + n["v1.timeline"]["inputs"]["end_card"]["duration"]
+    tl = n["v1.timeline"]["inputs"]
+    for i in range(1, 6):
+        assert tl["vo"][i - 1]["text"] == n[f"v1.vo.l{i:02d}"]["inputs"]["text"]
+        assert tl["vo"][i - 1]["audio"] == f"@v1.vo.l{i:02d}"
+    for k, s in enumerate(SHOTS):
+        shot = tl["shots"][k]
+        assert shot["duration"] == n[f"v1.{s}.clip"]["inputs"]["duration"]
+        assert shot["clip"] == f"@v1.{s}.clip"
+        assert shot["fallback"] == f"@v1.{s}.keyframe"
 
 
 def test_example_copy_respects_ellora_claim_rules():
     banned = ["cure", "treat", "prevent", "clinically proven", "doctor", "pharmacist", "candida", "ibs",
-              "before and after", "parasite"]
+              "before and after", "parasite", "heal", "diagnosed", "diagnosis"]
     n = nodes()
+    tl = n["v1.timeline"]["inputs"]
     copy = [n[f"v1.vo.l{i:02d}"]["inputs"]["text"] for i in range(1, 6)]
-    copy.append(n["v1.timeline"]["inputs"]["end_card"]["text"])
+    copy += [v["text"] for v in tl["vo"]]
+    copy.append(tl["end_card"]["text"])
     for line in copy:
-        assert not [w for w in banned if w in line.lower()], line
+        hits = [w for w in banned if re.search(r"\b" + re.escape(w) + r"\b", line.lower())]
+        assert not hits, line
 
 
 def test_example_bottle_shots_use_the_label_wording():
@@ -79,6 +92,8 @@ def test_example_bottle_shots_use_the_label_wording():
     assert "NATURAL HEAVY METAL DETOX SUPPORT" in n["v1.s04.keyframe"]["prompt"]
     for s in ("s02", "s04", "s05"):
         assert "Dietary Supplement" in n[f"v1.{s}.keyframe"]["prompt"]
+    assert n["v1.s04.keyframe"]["prompt"].lower().count("dietary supplement") >= 2
+    assert "the same woman" not in n["v1.s05.keyframe"]["prompt"].lower()
 
 
 def test_example_timeline_inputs_build(ad_dir):

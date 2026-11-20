@@ -61,7 +61,7 @@
     {
       "id": "v1.s05.keyframe",
       "type": "image",
-      "prompt": "Photoreal vertical 9:16 frame. The same woman, now relaxed and smiling slightly, at a bright kitchen counter, holding Ellora Gut Cleanse (Step 1) over a tall glass of water: a squat 30 mL amber-brown glass dropper bottle with a matte black ribbed collar and black rubber dropper bulb, deep sea-green / teal label with \"Ellora\" and \"Gut Cleanse\" in white, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white intestine line drawing, and \"Dietary Supplement / 30 mL\" legible at the bottom. Morning light, clean and calm.",
+      "prompt": "Photoreal vertical 9:16 frame. A woman in her late thirties, relaxed and smiling slightly, at a bright kitchen counter, holding Ellora Gut Cleanse (Step 1) over a tall glass of water: a squat 30 mL amber-brown glass dropper bottle with a matte black ribbed collar and black rubber dropper bulb, deep sea-green / teal label with \"Ellora\" and \"Gut Cleanse\" in white, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white intestine line drawing, and \"Dietary Supplement / 30 mL\" legible at the bottom. Morning light, clean and calm.",
       "inputs": {"aspect": "9:16"},
       "depends_on": []
     },
