@@ -58,7 +58,7 @@ class MockProvider(Provider):
 
     async def music(self, ctx, prompt, duration):
         await self._before(ctx)
-        return self._write(ctx, "music.mp3", self._stamp(ctx, prompt=prompt, duration=duration))
+        return self._write(ctx, "music.wav", self._stamp(ctx, prompt=prompt, duration=duration))
 
     async def assemble(self, ctx, node_type, inputs):
         await self._before(ctx)

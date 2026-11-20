@@ -1,7 +1,7 @@
 """Provider interface. Providers execute; they make no creative decisions."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +26,8 @@ class CallContext:
     node_id: str
     model: str
     work_dir: Path  # empty directory; write outputs here and return their paths
+    project_dir: Path | None = None
+    sources: dict[str, str] = field(default_factory=dict)  # assembly only: absolute input path → node id
 
 
 class Provider:

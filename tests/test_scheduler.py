@@ -200,3 +200,29 @@ def test_old_state_without_built_from_still_loads_and_is_fresh(project_dir):
     path.write_text(json.dumps(data))
     p = RecordingProvider()
     assert len(run(project_dir, p).skipped) == 17 and p.calls == []
+
+
+class ContextRecorder(RecordingProvider):
+    def __init__(self):
+        super().__init__()
+        self.contexts = {}
+
+    async def _before(self, ctx):
+        self.contexts[ctx.node_id] = ctx
+        await super()._before(ctx)
+
+
+def test_assembly_nodes_get_project_dir_and_sources(project_dir):
+    p = ContextRecorder()
+    run(project_dir, p)
+    ctx = p.contexts["v1.timeline"]
+    assert ctx.project_dir == project_dir
+    assert ctx.sources == {
+        str(project_dir / "v1/shots/s01/clip.mp4"): "v1.s01.clip",
+        str(project_dir / "v1/shots/s02/clip.mp4"): "v1.s02.clip",
+        str(project_dir / "v1/shots/s01/keyframe.png"): "v1.s01.keyframe",
+        str(project_dir / "v1/shots/s02/keyframe.png"): "v1.s02.keyframe",
+        str(project_dir / "v1/vo/l01.wav"): "v1.vo.l01",
+    }
+    assert p.contexts["v1.s01.clip"].sources == {}
+    assert p.contexts["v1.s01.clip"].project_dir == project_dir

@@ -128,7 +128,8 @@ def test_pinned_node_is_kept_when_its_dependency_rebuilds(project_dir):
     run(project)
     (project_dir / "v1/shots/s01/keyframe.png").unlink()
     _, p = run(project)
-    assert set(p.calls) == {"v1.s01.keyframe"}
+    assert "v1.s01.clip" not in p.calls
+    assert set(p.calls) == {"v1.s01.keyframe", "v1.timeline", "v1.preview", "v1.capcut_draft"}
 
 
 def test_revise_rejects_non_dict_inputs(project_dir):

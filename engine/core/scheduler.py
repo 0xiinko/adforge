@@ -14,6 +14,7 @@ from engine.core.ledger import Ledger
 from engine.core.paths import resolve_inputs
 from engine.core.store import ProjectStore
 from engine.providers.base import (
+    ASSEMBLY_TYPES,
     GENERATION_TYPES,
     CallContext,
     Provider,
@@ -126,8 +127,16 @@ class Scheduler:
         retry = self.config.retry
         try:
             inputs = resolve_inputs(self.manifest, self.store.dir, node)
+            sources = (
+                {str(self.store.output(self.manifest.nodes[d])): d for d in node.depends_on}
+                if node.type in ASSEMBLY_TYPES
+                else {}
+            )
             for attempt in range(1, retry.max_attempts + 1):
-                ctx = CallContext(node_id=nid, model=route.model, work_dir=self.store.work_dir(nid))
+                ctx = CallContext(
+                    node_id=nid, model=route.model, work_dir=self.store.work_dir(nid),
+                    project_dir=self.store.dir, sources=sources,
+                )
                 try:
                     async with self._sem(route.provider):
                         started = time.monotonic()

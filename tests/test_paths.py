@@ -13,7 +13,7 @@ from tests.helpers import make_manifest
         ("v2.s03.clip", "video", "v2/shots/s03/clip.mp4"),
         ("v2.vo.l04", "tts", "v2/vo/l04.wav"),
         ("v2.sfx.whoosh02", "sfx", "v2/sfx/whoosh02.wav"),
-        ("shared.music.bed", "music", "shared/music/bed.mp3"),
+        ("shared.music.bed", "music", "shared/music/bed.wav"),
         ("v2.timeline", "timeline", "v2/timeline.json"),
         ("v2.preview", "preview", "v2/preview.mp4"),
         ("v2.capcut_draft", "capcut_draft", "v2/capcut_draft"),

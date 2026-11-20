@@ -2,6 +2,7 @@
 Model names live in config, never in engine code."""
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,28 @@ class RetryConfig:
     max_delay_s: float = 30.0
 
 
+def default_font() -> str:
+    return "Helvetica" if sys.platform == "darwin" else "DejaVu Sans"
+
+
+def default_font_file() -> str | None:
+    return "/System/Library/Fonts/Helvetica.ttc" if sys.platform == "darwin" else None
+
+
+@dataclass
+class AssemblyConfig:
+    ffmpeg: str = "ffmpeg"
+    ffprobe: str = "ffprobe"
+    font: str = field(default_factory=default_font)            # family name for captions (libass)
+    font_file: str | None = field(default_factory=default_font_file)  # drawtext fontfile=; None → font=
+
+
+@dataclass
+class CapcutConfig:
+    drafts_dir: Path | None = None   # folder CapCut scans for drafts; None = keep the draft in the project only
+    media_root: str | None = None    # how the projects/ folder is seen from the CapCut machine
+
+
 def _default_routing() -> dict[str, Route]:
     return {t: Route("mock", f"mock-{t}") for t in NODE_TYPES}
 
@@ -42,6 +65,8 @@ class EngineConfig:
     concurrency: dict[str, int] = field(default_factory=dict)
     default_concurrency: int = 4
     retry: RetryConfig = field(default_factory=RetryConfig)
+    assembly: AssemblyConfig = field(default_factory=AssemblyConfig)
+    capcut: CapcutConfig = field(default_factory=CapcutConfig)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "EngineConfig":
@@ -66,6 +91,18 @@ class EngineConfig:
             raise ConfigError("retry.max_attempts must be >= 1")
         if any(v < 1 for v in [*cfg.concurrency.values(), cfg.default_concurrency]):
             raise ConfigError("concurrency limits must be >= 1")
+        asm = data.get("assembly") or {}
+        cfg.assembly = AssemblyConfig(
+            ffmpeg=str(asm.get("ffmpeg", "ffmpeg")),
+            ffprobe=str(asm.get("ffprobe", "ffprobe")),
+            font=str(asm.get("font", default_font())),
+            font_file=str(asm["font_file"]) if asm.get("font_file") else default_font_file(),
+        )
+        cap = data.get("capcut") or {}
+        cfg.capcut = CapcutConfig(
+            drafts_dir=Path(str(cap["drafts_dir"])).expanduser() if cap.get("drafts_dir") else None,
+            media_root=str(cap["media_root"]).rstrip("/\\") if cap.get("media_root") else None,
+        )
         return cfg
 
     def route(self, node: Node) -> Route:

@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
+from pathlib import Path
 
 from engine.config import EngineConfig
 from engine.providers.base import ProviderRefusal, TransientProviderError
@@ -46,11 +49,19 @@ def make_manifest(variants: tuple[str, ...] = ("v1", "v2"), shots: int = 2) -> d
             "inputs": {"text": f"Line for {v}", "voice": "narrator"},
             "depends_on": [],
         })
+        keyframes = [f"{v}.s{s:02d}.keyframe" for s in range(1, shots + 1)]
         nodes.append({
             "id": f"{v}.timeline",
             "type": "timeline",
-            "inputs": {"clips": [f"@{c}" for c in clips], "vo": [f"@{v}.vo.l01"]},
-            "depends_on": clips + [f"{v}.vo.l01"],
+            "inputs": {
+                "aspect": "9:16",
+                "shots": [
+                    {"clip": f"@{c}", "duration": 4, "fallback": f"@{k}"} for c, k in zip(clips, keyframes)
+                ],
+                "vo": [{"audio": f"@{v}.vo.l01", "text": f"Line for {v}"}],
+                "end_card": {"text": "Shop now", "duration": 2},
+            },
+            "depends_on": clips + keyframes + [f"{v}.vo.l01"],
         })
         nodes.append({
             "id": f"{v}.preview",
@@ -110,3 +121,18 @@ class RecordingProvider(MockProvider):
 
 
 FAST = EngineConfig.from_dict({"retry": {"base_delay_s": 0}, "default_concurrency": 8})
+
+
+GOLDEN_DIR = Path(__file__).parent / "golden"
+
+
+def assert_golden(name: str, data) -> None:
+    """Compare JSON-able `data` with tests/golden/<name>. Run once with
+    ADFORGE_UPDATE_GOLDEN=1 to (re)write the file, then review it before committing."""
+    path = GOLDEN_DIR / name
+    text = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    if os.environ.get("ADFORGE_UPDATE_GOLDEN") == "1":
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+    assert path.exists(), f"missing golden file {path}; run with ADFORGE_UPDATE_GOLDEN=1 and review it"
+    assert json.loads(path.read_text()) == json.loads(text)

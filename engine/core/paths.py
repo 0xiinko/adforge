@@ -12,7 +12,7 @@ EXTENSIONS: dict[str, str] = {
     "video": ".mp4",
     "tts": ".wav",
     "sfx": ".wav",
-    "music": ".mp3",
+    "music": ".wav",
     "timeline": ".json",
     "preview": ".mp4",
     "capcut_draft": "",  # a directory

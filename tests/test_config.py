@@ -1,6 +1,6 @@
 import pytest
 
-from engine.config import ConfigError, EngineConfig, Route, load_config
+from engine.config import AssemblyConfig, ConfigError, EngineConfig, Route, default_font, default_font_file, load_config
 from engine.core.graph import Node
 
 
@@ -55,3 +55,29 @@ def test_load_config(tmp_path):
     assert load_config(path).route(_node()) == Route("seedance", "seedance-x")
     with pytest.raises(ConfigError, match="not found"):
         load_config(tmp_path / "missing.yaml")
+
+
+def test_assembly_and_capcut_defaults():
+    cfg = EngineConfig()
+    assert (cfg.assembly.ffmpeg, cfg.assembly.ffprobe) == ("ffmpeg", "ffprobe")
+    assert (cfg.assembly.font, cfg.assembly.font_file) == (default_font(), default_font_file())
+    assert cfg.capcut.drafts_dir is None and cfg.capcut.media_root is None
+
+
+def test_font_defaults_per_platform(monkeypatch):
+    monkeypatch.setattr("sys.platform", "darwin")
+    assert (default_font(), default_font_file()) == ("Helvetica", "/System/Library/Fonts/Helvetica.ttc")
+    monkeypatch.setattr("sys.platform", "linux")
+    assert (default_font(), default_font_file()) == ("DejaVu Sans", None)
+    assert AssemblyConfig().font == "DejaVu Sans"
+
+
+def test_assembly_and_capcut_from_dict(tmp_path):
+    cfg = EngineConfig.from_dict({
+        "assembly": {"ffmpeg": "/opt/ff/ffmpeg", "font": "Inter"},
+        "capcut": {"drafts_dir": str(tmp_path / "drafts"), "media_root": "C:/AdForge/projects/"},
+    })
+    assert (cfg.assembly.ffmpeg, cfg.assembly.ffprobe, cfg.assembly.font) == ("/opt/ff/ffmpeg", "ffprobe", "Inter")
+    assert EngineConfig.from_dict({"assembly": {"font_file": "/fonts/Inter.ttf"}}).assembly.font_file == "/fonts/Inter.ttf"
+    assert cfg.capcut.drafts_dir == tmp_path / "drafts"
+    assert cfg.capcut.media_root == "C:/AdForge/projects"
