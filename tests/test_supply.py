@@ -132,3 +132,35 @@ def test_rollback_restores_the_external_ref(ellora_dir):
     st = ProjectStore(ellora_dir).get(HERO)
     assert st.external["ref"] == "r1"
     assert st.external_history[str(new_version)]["ref"] == "r1"
+
+
+def count_saves(monkeypatch):
+    saves = []
+    real = ProjectStore.save
+    monkeypatch.setattr(ProjectStore, "save", lambda self: (saves.append(1), real(self))[1])
+    return saves
+
+
+def test_supply_and_rollback_write_state_once(ellora_dir, monkeypatch):
+    p = Project(ellora_dir, ELLORA)
+    run(ellora_dir)
+    p.supply(HERO, png(ellora_dir), ref="r1")
+    revise_hero(ellora_dir, "second take")
+    run(ellora_dir)
+    saves = count_saves(monkeypatch)
+    assert p.supply(HERO, png(ellora_dir), ref="r2") == 2
+    assert len(saves) == 1  # a crash cannot leave the node done without its external ref
+    st = ProjectStore(ellora_dir).get(HERO)
+    assert st.external["ref"] == "r2" and st.external_history["2"]["ref"] == "r2"
+    saves.clear()
+    assert p.rollback(HERO, 1) == 3
+    assert len(saves) == 1
+
+
+def test_commit_records_external_metadata(ellora_dir):
+    store = ProjectStore(ellora_dir)
+    hero = Project(ellora_dir, ELLORA).manifest().nodes[HERO]
+    ext = {"provider": "ellora", "ref": "r", "id": None}
+    assert store.commit(hero, png(ellora_dir), "fp", external=ext) == 1
+    st = ProjectStore(ellora_dir).get(HERO)
+    assert st.external == ext and st.external_history == {"1": ext}

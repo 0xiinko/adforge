@@ -148,10 +148,15 @@ class ProjectStore:
         st = self.nodes.get(node_id)
         return st.version if st else 0
 
-    def commit(self, node: Node, produced: Path, fingerprint: str | None = None, *, pin: bool = False) -> int:
+    def commit(
+        self, node: Node, produced: Path, fingerprint: str | None = None, *,
+        pin: bool = False, external: dict | None = None,
+    ) -> int:
         """Archive the current output (if any) to versions/, move `produced` into place.
         An existing archive is never overwritten, even if state.json was lost.
-        pin=True (rollback) pins the new version and gives it the pinned fingerprint."""
+        pin=True (rollback) pins the new version and gives it the pinned fingerprint.
+        external: provider metadata of a file rendered outside the engine; recorded for the
+        new version in the same save, so the node is never done without it."""
         if fingerprint is None and not pin:
             raise ValueError("commit needs a fingerprint unless pin=True")
         produced = Path(produced)
@@ -180,7 +185,9 @@ class ProjectStore:
                 st.fingerprint = fingerprint
             st.reason = None
             st.expected_fingerprint = None
-            st.external = None  # supply() sets it again for supplied files
+            st.external = external
+            if external is not None:
+                st.external_history = {**(st.external_history or {}), str(st.version): external}
             st.message = None
             self.save()
             return st.version
@@ -210,19 +217,15 @@ class ProjectStore:
         src = version_path(out, node.id, version)
         if not src.exists():
             raise ValueError(f"{node.id} has no version {version} (archived: {self.versions(node)})")
-        staged = self.work_dir(node.id) / f"rollback{out.suffix}"
-        if src.is_dir():
-            shutil.copytree(src, staged)
-        else:
-            shutil.copy2(src, staged)
-        new_version = self.commit(node, staged, pin=True)
-        st = self._touch(node.id)
-        ext = (st.external_history or {}).get(str(version))
-        if ext is not None:  # a supplied file: later external nodes need its provider-side ref
-            st.external = ext
-            st.external_history = {**(st.external_history or {}), str(new_version): ext}
-            self.save()
-        return new_version
+        with self.lock():
+            staged = self.work_dir(node.id) / f"rollback{out.suffix}"
+            if src.is_dir():
+                shutil.copytree(src, staged)
+            else:
+                shutil.copy2(src, staged)
+            # a supplied file: later external nodes need its provider-side ref
+            ext = (self.get(node.id).external_history or {}).get(str(version))
+            return self.commit(node, staged, pin=True, external=ext)
 
     def pins(self) -> dict[str, int]:
         return {k: v.pinned_version for k, v in self.nodes.items() if v.pinned_version is not None}

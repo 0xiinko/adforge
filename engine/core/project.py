@@ -208,11 +208,8 @@ class Project:
                 asyncio.run(FFmpeg(self.config.assembly).run(["-i", str(src), "-frames:v", "1", str(staged)]))
             else:
                 shutil.copy2(src, staged)
-            version = store.commit(node, staged, current)
             ext = {"provider": route.provider, "ref": ref, "id": external_id}
-            history = dict(store.get(node_id).external_history or {})
-            history[str(version)] = ext
-            store.update(node_id, external=ext, external_history=history)
+            version = store.commit(node, staged, current, external=ext)
             self.ledger().record(
                 node_id=node_id, provider=route.provider, model=route.model, cost_usd=0.0,
                 seconds=0.0, attempt=1, ok=True, external_id=external_id,
