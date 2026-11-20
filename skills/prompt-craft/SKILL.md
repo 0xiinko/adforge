@@ -1,6 +1,6 @@
 ---
 name: prompt-craft
-description: Stage 4 of /ad. Writes projects/<slug>/vN/prompts.md — an Ellora image prompt for each shot's keyframe and a motion prompt for its clip — using the brand file's exact label wording so Ellora attaches the right bottle reference.
+description: Stage 4 of /ad. Writes projects/<slug>/vN/prompts.md — an Ellora image prompt for each shot's keyframe and a clip prompt (motion plus the spoken line) for its clip — using the brand file's exact label wording so Ellora attaches the right bottle reference.
 ---
 
 # Prompt craft (stage 4)
@@ -27,11 +27,15 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 - Never: text overlays, doctors or pharmacists, white coats, before/after bodies, named conditions.
 - One image per keyframe.
 
-## Clip (motion) prompts
+## Clip prompts (motion and audio)
 
-- Describe only the movement over the shot's seconds: what moves, how the camera moves, what stays still. The keyframe is the first frame, so do not re-describe the scene.
+- Describe the movement over the shot's seconds: what moves, how the camera moves, what stays still. The keyframe is the first frame, so do not re-describe the scene.
 - Keep labels sharp and readable in bottle shots ("the label stays sharp and readable").
-- Clips are rendered without native audio; never describe sound.
+- Clips render with their own audio. Every clip prompt contains:
+  - the shot's exact spoken line from `shots.md`, in double quotes, word for word;
+  - who speaks it: the on-camera person ("she looks into the camera and says, lips in sync: ...") or, when nobody is on screen, a voice ("a warm woman's voice, off camera, says: ..."); keep the same voice across the variant;
+  - the delivery, in the brand's tone (plain, unembarrassed, a bit conspiratorial; never clinical or influencer);
+  - "Natural ambient sound, no music."
 
 ## Write `projects/<slug>/vN/prompts.md`
 
@@ -44,7 +48,7 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 
 ## s01 (4 s)
 **Keyframe:** <image prompt>
-**Motion:** <motion prompt>
+**Clip:** <motion> <who> says, <delivery>: "<spoken line>" Natural ambient sound, no music.
 
 ## s02 (5 s)
 ...

@@ -42,12 +42,13 @@ def test_example_config_routes_images_and_video_to_ellora():
 
 def test_example_manifest_validates(ad_dir, capsys):
     assert main(["validate", str(ad_dir)]) == 0
-    assert capsys.readouterr().out.strip() == "OK: 19 nodes"
+    assert capsys.readouterr().out.strip() == "OK: 13 nodes"
 
 
 def test_example_manifest_shape():
     n = nodes()
-    assert len(n) == 19
+    assert len(n) == 13
+    assert not [i for i, node in n.items() if node["type"] in ("tts", "sfx", "music")]
     for s in SHOTS:
         kf, clip = n[f"v1.{s}.keyframe"], n[f"v1.{s}.clip"]
         assert kf["type"] == "image" and kf["inputs"] == {"aspect": "9:16"} and kf["depends_on"] == []
@@ -57,19 +58,20 @@ def test_example_manifest_shape():
         assert clip["inputs"]["aspect"] == "9:16" and clip["inputs"]["duration"] in (4, 5)
     total = sum(n[f"v1.{s}.clip"]["inputs"]["duration"] for s in SHOTS)
     assert 20 <= total <= 25
-    for i in range(1, 6):
-        vo = n[f"v1.vo.l{i:02d}"]
-        assert vo["type"] == "tts" and len(vo["inputs"]["text"].split()) <= 14
-    assert n["v1.music.bed"]["inputs"]["duration"] == total + n["v1.timeline"]["inputs"]["end_card"]["duration"]
     tl = n["v1.timeline"]["inputs"]
-    for i in range(1, 6):
-        assert tl["vo"][i - 1]["text"] == n[f"v1.vo.l{i:02d}"]["inputs"]["text"]
-        assert tl["vo"][i - 1]["audio"] == f"@v1.vo.l{i:02d}"
+    assert "vo" not in tl and "music" not in tl and tl["captions"] is True
+    assert not [d for d in n["v1.timeline"]["depends_on"] if ".vo." in d or "music" in d]
     for k, s in enumerate(SHOTS):
         shot = tl["shots"][k]
-        assert shot["duration"] == n[f"v1.{s}.clip"]["inputs"]["duration"]
+        clip = n[f"v1.{s}.clip"]
+        assert shot["duration"] == clip["inputs"]["duration"]
         assert shot["clip"] == f"@v1.{s}.clip"
         assert shot["fallback"] == f"@v1.{s}.keyframe"
+        assert shot["audio"] is True
+        words = len(shot["text"].split())
+        assert 0 < words <= 14 and words <= 2.6 * shot["duration"], shot["text"]
+        assert f'"{shot["text"]}"' in clip["prompt"]
+        assert "natural ambient sound, no music" in clip["prompt"].lower()
 
 
 def test_example_copy_respects_ellora_claim_rules():
@@ -77,8 +79,7 @@ def test_example_copy_respects_ellora_claim_rules():
               "before and after", "parasite", "heal", "diagnosed", "diagnosis"]
     n = nodes()
     tl = n["v1.timeline"]["inputs"]
-    copy = [n[f"v1.vo.l{i:02d}"]["inputs"]["text"] for i in range(1, 6)]
-    copy += [v["text"] for v in tl["vo"]]
+    copy = [shot["text"] for shot in tl["shots"]]
     copy.append(tl["end_card"]["text"])
     for line in copy:
         hits = [w for w in banned if re.search(r"\b" + re.escape(w) + r"\b", line.lower())]
@@ -106,18 +107,20 @@ def test_example_timeline_inputs_build(ad_dir):
         dn = manifest.nodes[dep]
         path = str(output_path(ad_dir, dep, dn.type))
         sources[path] = dep
-        media[path] = {"image": 0.0, "video": float(dn.inputs.get("duration", 0)), "tts": 3.0,
-                       "music": float(dn.inputs.get("duration", 0))}[dn.type]
-    timeline = build_timeline("v1.timeline", inputs, sources=sources, project_dir=ad_dir, media=media)
-    assert isinstance(timeline, dict) and timeline
+        media[path] = {"image": 0.0, "video": float(dn.inputs.get("duration", 0))}[dn.type]
+    audio = frozenset(p for p, dep in sources.items() if manifest.nodes[dep].type == "video")
+    timeline = build_timeline("v1.timeline", inputs, sources=sources, project_dir=ad_dir, media=media,
+                              audio_paths=audio)
+    assert [e["audio"] for e in timeline["tracks"]["video"]] == [True] * 5
+    assert timeline["tracks"]["vo"] == [] and timeline["tracks"]["music"] is None
+    assert timeline["tracks"]["captions"][0]["start"] == 0.0 and timeline["warnings"] == []
 
 
 def test_example_config_assembles_for_real():
     routing = yaml.safe_load(CONFIG.read_text())["routing"]
     for t in ("timeline", "preview", "capcut_draft"):
         assert routing[t]["provider"] == "assembly"
-    for t in ("tts", "sfx", "music"):
-        assert routing[t]["provider"] == "mock_media"
+    assert not {"tts", "sfx", "music"} & set(routing)
 
 
 def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
@@ -134,10 +137,11 @@ def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
                 keyframe = item["id"].replace(".clip", ".keyframe")
                 assert item["external_inputs"]["first_frame"] == f"ellora://{keyframe}"
                 f = ad_dir / f"{item['id']}.mp4"
-                asyncio.run(ffmpeg.run([
+                asyncio.run(ffmpeg.run([  # Ellora clips carry their own audio (spoken line + sound)
                     "-f", "lavfi", "-i", "color=c=gray:s=270x480:r=24",
+                    "-f", "lavfi", "-i", "sine=frequency=330:sample_rate=48000",
                     "-t", str(item["inputs"]["duration"]), "-c:v", "libx264", "-preset", "ultrafast",
-                    "-pix_fmt", "yuv420p", str(f),
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", str(f),
                 ]))
             else:
                 assert "refs" not in item["inputs"]
@@ -147,9 +151,13 @@ def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
                          "--fingerprint", item["fingerprint"]]) == 0
     assert code == 0 and passes == 2  # keyframes, then clips
     timeline = json.loads((ad_dir / "v1" / "timeline.json").read_text())
-    assert timeline["placeholders"] == []
+    assert timeline["placeholders"] == [] and timeline["warnings"] == []
+    assert [e["audio"] for e in timeline["tracks"]["video"]] == [True] * 5
     info = asyncio.run(ffmpeg.probe(ad_dir / "v1" / "preview.mp4"))
     assert (info.width, info.height) == (1080, 1920) and info.has_audio
     assert info.duration == pytest.approx(timeline["duration"], abs=0.2)
     draft = json.loads((ad_dir / "v1" / "capcut_draft" / "draft_content.json").read_text())
     assert [m["material_name"] for m in draft["materials"]["videos"]] == [f"v1.{s}.clip" for s in SHOTS]
+    main_track = next(t for t in draft["tracks"] if t["name"] == "main")
+    assert [s["volume"] for s in main_track["segments"]] == [1.0] * 5
+    assert not [t for t in draft["tracks"] if t["type"] == "audio"]

@@ -12,7 +12,7 @@
     {
       "id": "v1.s01.clip",
       "type": "video",
-      "prompt": "Slow push-in on the woman as she exhales and lets her hand drop from her stomach. Subtle, natural movement, steady camera, warm afternoon light holds.",
+      "prompt": "Slow push-in on the woman as she exhales and lets her hand drop from her stomach. Subtle, natural movement, steady camera, warm afternoon light holds. She looks into the camera and says, plainly and a little fed up, lips in sync: \"Bloated by three p.m. every day, whatever you eat?\" Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s01.keyframe", "duration": 4, "aspect": "9:16"},
       "depends_on": ["v1.s01.keyframe"]
     },
@@ -26,7 +26,7 @@
     {
       "id": "v1.s02.clip",
       "type": "video",
-      "prompt": "Slow 15-degree orbit around the bottle. The label stays sharp and readable, light glints softly on the amber glass, backdrop and shadow stay steady.",
+      "prompt": "Slow 15-degree orbit around the bottle. The label stays sharp and readable, light glints softly on the amber glass, backdrop and shadow stay steady. A warm, plain-spoken woman's voice, off camera, says: \"Most cleanses sell you step one and stop there.\" Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s02.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["v1.s02.keyframe"]
     },
@@ -40,7 +40,7 @@
     {
       "id": "v1.s03.clip",
       "type": "video",
-      "prompt": "The broom gives one last short sweep and stops. The dust pile just sits there; a faint drift of dust settles back around it. Camera holds still.",
+      "prompt": "The broom gives one last short sweep and stops. The dust pile just sits there; a faint drift of dust settles back around it. Camera holds still. The same warm woman's voice, off camera, says with a wry edge: \"That's a broom with no dustpan. What gets swept up just sits there.\" Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s03.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["v1.s03.keyframe"]
     },
@@ -54,7 +54,7 @@
     {
       "id": "v1.s04.clip",
       "type": "video",
-      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement.",
+      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement. The same warm woman's voice, off camera, says, calm and confident: \"Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush.\" Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s04.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["v1.s04.keyframe"]
     },
@@ -68,46 +68,9 @@
     {
       "id": "v1.s05.clip",
       "type": "video",
-      "prompt": "She squeezes the dropper bulb and one dropperful falls into the glass of water, the liquid swirling darker for a moment before it settles. Calm, satisfied expression. Slow push-in.",
+      "prompt": "She squeezes the dropper bulb and one dropperful falls into the glass of water, the liquid swirling darker for a moment before it settles. Calm, satisfied expression. Slow push-in. She looks up into the camera and says, relaxed and matter-of-fact, lips in sync: \"The Complete Kit is $49.99, with a 30-day money-back guarantee.\" Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s05.keyframe", "duration": 4, "aspect": "9:16"},
       "depends_on": ["v1.s05.keyframe"]
-    },
-    {
-      "id": "v1.vo.l01",
-      "type": "tts",
-      "inputs": {"text": "Bloated by three p.m. every day, no matter what you eat?", "voice": "narrator"},
-      "depends_on": []
-    },
-    {
-      "id": "v1.vo.l02",
-      "type": "tts",
-      "inputs": {"text": "Most cleanses sell you step one and stop there.", "voice": "narrator"},
-      "depends_on": []
-    },
-    {
-      "id": "v1.vo.l03",
-      "type": "tts",
-      "inputs": {"text": "That's a broom with no dustpan. What gets swept up just sits there.", "voice": "narrator"},
-      "depends_on": []
-    },
-    {
-      "id": "v1.vo.l04",
-      "type": "tts",
-      "inputs": {"text": "Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush.", "voice": "narrator"},
-      "depends_on": []
-    },
-    {
-      "id": "v1.vo.l05",
-      "type": "tts",
-      "inputs": {"text": "The Complete Kit is $49.99, with a 30-day money-back guarantee.", "voice": "narrator"},
-      "depends_on": []
-    },
-    {
-      "id": "v1.music.bed",
-      "type": "music",
-      "prompt": "Warm, understated acoustic groove, light and confident, no vocals.",
-      "inputs": {"duration": 25},
-      "depends_on": []
     },
     {
       "id": "v1.timeline",
@@ -115,27 +78,18 @@
       "inputs": {
         "aspect": "9:16",
         "shots": [
-          {"clip": "@v1.s01.clip", "duration": 4, "fallback": "@v1.s01.keyframe"},
-          {"clip": "@v1.s02.clip", "duration": 5, "fallback": "@v1.s02.keyframe"},
-          {"clip": "@v1.s03.clip", "duration": 5, "fallback": "@v1.s03.keyframe"},
-          {"clip": "@v1.s04.clip", "duration": 5, "fallback": "@v1.s04.keyframe"},
-          {"clip": "@v1.s05.clip", "duration": 4, "fallback": "@v1.s05.keyframe"}
+          {"clip": "@v1.s01.clip", "duration": 4, "fallback": "@v1.s01.keyframe", "audio": true, "text": "Bloated by three p.m. every day, whatever you eat?"},
+          {"clip": "@v1.s02.clip", "duration": 5, "fallback": "@v1.s02.keyframe", "audio": true, "text": "Most cleanses sell you step one and stop there."},
+          {"clip": "@v1.s03.clip", "duration": 5, "fallback": "@v1.s03.keyframe", "audio": true, "text": "That's a broom with no dustpan. What gets swept up just sits there."},
+          {"clip": "@v1.s04.clip", "duration": 5, "fallback": "@v1.s04.keyframe", "audio": true, "text": "Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush."},
+          {"clip": "@v1.s05.clip", "duration": 4, "fallback": "@v1.s05.keyframe", "audio": true, "text": "The Complete Kit is $49.99, with a 30-day money-back guarantee."}
         ],
-        "vo": [
-          {"audio": "@v1.vo.l01", "text": "Bloated by three p.m. every day, no matter what you eat?"},
-          {"audio": "@v1.vo.l02", "text": "Most cleanses sell you step one and stop there."},
-          {"audio": "@v1.vo.l03", "text": "That's a broom with no dustpan. What gets swept up just sits there."},
-          {"audio": "@v1.vo.l04", "text": "Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush."},
-          {"audio": "@v1.vo.l05", "text": "The Complete Kit is $49.99, with a 30-day money-back guarantee."}
-        ],
-        "music": {"audio": "@v1.music.bed"},
         "end_card": {"text": "Complete Kit $49.99 · myellora.com", "duration": 2},
         "captions": true
       },
       "depends_on": [
         "v1.s01.clip", "v1.s02.clip", "v1.s03.clip", "v1.s04.clip", "v1.s05.clip",
-        "v1.s01.keyframe", "v1.s02.keyframe", "v1.s03.keyframe", "v1.s04.keyframe", "v1.s05.keyframe",
-        "v1.vo.l01", "v1.vo.l02", "v1.vo.l03", "v1.vo.l04", "v1.vo.l05", "v1.music.bed"
+        "v1.s01.keyframe", "v1.s02.keyframe", "v1.s03.keyframe", "v1.s04.keyframe", "v1.s05.keyframe"
       ]
     },
     {

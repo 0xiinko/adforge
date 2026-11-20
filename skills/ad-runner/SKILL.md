@@ -13,12 +13,11 @@ The engine CLI runs from the AdForge repo root (the plugin root): `uv run adengi
 ## 1. Manifest and config
 
 - `config.yaml`: copy `skills/ad-runner/example-config.yaml`, replacing the model IDs if prompt-craft chose others.
-- `manifest.json`: follow `skills/ad-runner/example-manifest.json` exactly — same node ids, types and input shapes — with this ad's prompts, VO text, durations, music mood and end card. Per variant `vN`:
+- `manifest.json`: follow `skills/ad-runner/example-manifest.json` exactly — same node ids, types and input shapes — with this ad's prompts, spoken lines, durations and end card. Each clip carries its own audio from Ellora (the shot's line spoken in the clip, plus natural sound); there is no voiceover node and no music bed. Per variant `vN`, the nodes are keyframes, clips, timeline, preview and capcut_draft:
   - `vN.sXX.keyframe` (image): prompt = keyframe prompt; `inputs: {"aspect": "9:16"}`; no refs; no `n`.
-  - `vN.sXX.clip` (video): prompt = motion prompt; `inputs: {"first_frame": "@vN.sXX.keyframe", "duration": <s>, "aspect": "9:16"}`.
-  - `vN.vo.lXX` (tts, mock): `{"text": <VO line>, "voice": "narrator"}`.
-  - `vN.music.bed` (music, mock): prompt = music mood; `duration` = shots total + end card.
-  - `vN.timeline`, `vN.preview`, `vN.capcut_draft` as in the example; the timeline's `vo[].text` is the VO line, `end_card.text` the end card.
+  - `vN.sXX.clip` (video): prompt = clip prompt from `prompts.md` (motion plus the shot's spoken line in quotes); `inputs: {"first_frame": "@vN.sXX.keyframe", "duration": <s>, "aspect": "9:16"}`.
+  - `vN.timeline`: per shot `{"clip", "duration", "fallback", "audio": true, "text": <the shot's spoken line>}`; no `vo`, no `music`; `end_card` as in the example; `captions: true` (captions come from each shot's `text`).
+  - `vN.preview`, `vN.capcut_draft` as in the example.
   - `project` = the slug.
 - Run `uv run adengine validate projects/<slug>` until it prints `OK`. Fix errors in the manifest, never in engine code.
 
@@ -27,9 +26,9 @@ The engine CLI runs from the AdForge repo root (the plugin root): `uv run adengi
 Show, in this order, then stop and wait for the user:
 
 1. **Assumptions** — every *(default)* from `plan.md`.
-2. **Script** per variant — hook, VO lines, captions, end card.
+2. **Script** per variant — hook, spoken lines (who says each), captions, end card.
 3. **Claim check** — "clean", or each hit with the rule and the compliant rewrite. The gate cannot be approved while a hit is unresolved: the user accepts the rewrite or edits the line.
-4. **Shots and prompts** — per shot: seconds, keyframe prompt, motion prompt.
+4. **Shots and prompts** — per shot: seconds, keyframe prompt, clip prompt (with its quoted spoken line).
 5. **Render list** — per variant: 5 Ellora images (`nano-banana-pro`) and 5 Ellora videos (`kling-3.0/video`), N variants in total. Say plainly: these spend your Ellora credits (videos far more than images) and land in your Ellora library.
 
 The user may approve, edit lines or shots, change an angle, drop or add variants, or ask for new prompts. Redo only the affected stage, update the manifest, re-validate, and show the gate again.
@@ -42,7 +41,7 @@ Approval confirms exactly the listed renders and downloading their results into 
 2. `uv run adengine external projects/<slug> --json` — the nodes waiting for Ellora, with `prompt`, `model`, `inputs`, `external_inputs` and `fingerprint`.
 3. Render each node in Ellora:
    - **image:** `generate_image` with `prompt`, `modelId` = the node's `model`, `aspectRatio: "9:16"`. Independent keyframes can render in parallel.
-   - **video:** `generate_video` with `prompt`, `modelId`, `firstFrameUrl` = `external_inputs.first_frame`, `durationSec` = `inputs.duration`, `aspectRatio: "9:16"`, `generateAudio: false` (VO and music come from the timeline). Then `check_generation` with `wait: true`, repeating until it is finished or failed.
+   - **video:** `generate_video` with `prompt`, `modelId`, `firstFrameUrl` = `external_inputs.first_frame`, `durationSec` = `inputs.duration`, `aspectRatio: "9:16"`, `generateAudio: true` (the clip's audio is the spoken line plus natural sound; the prompt already contains the line). Then `check_generation` with `wait: true`, repeating until it is finished or failed.
 4. Download each finished file from the link `check_generation` returns into `projects/<slug>/.tmp/ellora/<node id>.<ext>`, then:
    `uv run adengine supply projects/<slug> <node id> <file> --ref <Ellora path> --id <generation id> --fingerprint <fingerprint>`.
    Supplies may run in parallel; the engine locks its state.
@@ -58,13 +57,13 @@ Write `projects/<slug>/report.md` and show the same to the user:
 - per variant: `vN/preview.mp4` and `vN/capcut_draft/` paths;
 - the Ellora generation IDs used (from `adengine status` / the ledger);
 - every node `failed` or `needs_review`, with its reason;
-- what is still placeholder: audio (mock TTS and music), and assembly while the real preview/CapCut providers are not merged in.
+- that no music is added: the audio is each clip's own spoken line and natural sound; add music in CapCut if wanted.
 
 ## 5. Revisions
 
 After the report, turn feedback into node changes:
 - "shot 3 too dark" → `uv run adengine revise projects/<slug> v1.s03.keyframe --json '{"prompt": "<revised prompt>"}' --no-run`.
 - Motion only → revise `v1.s03.clip` instead (the keyframe stays).
-- A VO line → revise `v1.vo.lXX` `inputs.text` **and** the matching `vo[].text` in `v1.timeline`.
+- A spoken line → revise the clip's prompt so it quotes the new line (`v1.sXX.clip`, re-rendered in Ellora) **and** the matching `shots[k].text` in `v1.timeline` (the caption).
 
 List the renders the change causes (e.g. "1 image + 1 video in Ellora") and get the user's OK, then run the render loop again. The engine re-renders only the changed node, what depends on it, and the assembly.

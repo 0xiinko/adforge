@@ -1,5 +1,5 @@
 ---
-description: Turn an Ellora ad brief into a rendered ad — script, shots, Ellora prompts, one approval gate, then every image and video rendered in Ellora Studio and assembled by adengine.
+description: Turn an Ellora ad brief into a rendered ad — script, shots, Ellora prompts, one approval gate, then every image and video (clips with their own spoken lines and natural sound) rendered in Ellora Studio and assembled by adengine.
 argument-hint: <brief, e.g. "Complete Kit, broom-with-no-dustpan angle, 2 variants">
 ---
 

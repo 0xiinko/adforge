@@ -20,14 +20,14 @@ If the Ellora connector's `list_storyboards` returns any storyboards, read the o
 
 ## Lines
 
-- One VO line per beat, **14 words or fewer**, spoken naturally.
-- One on-screen caption per beat (may repeat the VO's key words; ≤ 6 words).
+- One spoken line per beat, said inside that shot's clip (by the on-camera person, or an off-camera voice when nobody is on screen); Ellora renders it with the clip, so there is no separate voiceover. **14 words or fewer**, spoken naturally, and short enough for its shot: at most ~2.6 words per second (≤ 10 words for a 4 s shot, ≤ 13 for 5 s).
+- One on-screen caption per beat (may repeat the line's key words; ≤ 6 words).
 - Tone: plain, unembarrassed, a bit conspiratorial about what the industry leaves out. Not clinical. Not wellness-influencer.
-- Music mood: one line (e.g. "warm, understated acoustic groove, no vocals").
+- No music: the clips carry natural sound only (music can be added later in CapCut).
 
 ## Claim check (Ellora)
 
-Check every VO line, caption and the end card against the brand file's "do not write" list:
+Check every spoken line, caption and the end card against the brand file's "do not write" list:
 
 - cures, treats or prevents any disease;
 - naming herpes, candida as an infection, or any named condition;
@@ -43,16 +43,15 @@ Safe ground: digestive comfort, bloating, regularity, energy, gut health support
 ```markdown
 # Script — vN (<angle>)
 
-| Beat | VO (≤ 14 words) | Caption |
-|---|---|---|
-| 1 hook | ... | ... |
-| 2 | ... | ... |
-| 3 | ... | ... |
-| 4 | ... | ... |
-| 5 CTA | ... | ... |
+| Beat | Spoken line (≤ 14 words) | Speaker | Caption |
+|---|---|---|---|
+| 1 hook | ... | on camera | ... |
+| 2 | ... | off-camera voice | ... |
+| 3 | ... | ... | ... |
+| 4 | ... | ... | ... |
+| 5 CTA | ... | ... | ... |
 
 - End card: ...
-- Music mood: ...
 
 ## Claim check
 Clean.

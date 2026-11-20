@@ -1,21 +1,17 @@
 # The config.yaml /ad writes into projects/<slug>/. Ellora renders every image and
 # video; Claude supplies them with `adengine supply`. Model IDs come from Ellora's
-# list_models. Timeline, preview and CapCut draft are assembled for real by the engine.
-# Voiceover, SFX and music are placeholder tones (mock_media) with the right timing until
-# real TTS/music providers land: the preview carries burned-in captions, and you record or
-# drop in the real voiceover and music in CapCut.
+# list_models. Each clip carries its own audio from Ellora: the on-camera person (or
+# an off-camera voice) speaks the shot's line, plus natural ambient sound. There is
+# no separate voiceover and no music bed; add music in CapCut. Timeline, preview and
+# CapCut draft are assembled for real by the engine.
 external_providers: [ellora]
 routing:
   image:        {provider: ellora, model: nano-banana-pro}
   video:        {provider: ellora, model: kling-3.0/video}
-  tts:          {provider: mock_media, model: mock-tts}
-  sfx:          {provider: mock_media, model: mock-sfx}
-  music:        {provider: mock_media, model: mock-music}
   timeline:     {provider: assembly, model: builtin}
   preview:      {provider: assembly, model: builtin}
   capcut_draft: {provider: assembly, model: builtin}
 concurrency:
-  mock_media: 4
   assembly: 2
 retry:
   max_attempts: 3
