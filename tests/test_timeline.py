@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from engine.assembly.timeline import TimelineError, build_timeline, caption_chunks, media_paths
+from engine.providers.base import ProviderError
 from tests.helpers import assert_golden
 
 P = Path("/proj")
@@ -123,11 +124,42 @@ def test_captions_can_be_disabled():
         ({"shots": [{"clip": CLIP1, "duration": 1}, {"clip": CLIP2, "duration": 1, "transition": "wipe"}]},
          "inputs.shots[1].transition must be one of"),
         ({"sfx": [{"audio": WHOOSH}]}, "inputs.sfx[0].start must be a number"),
+        ({"shots": ["x"]}, "inputs.shots[0].clip must be a reference"),
+        ({"vo": [{"text": "hi"}]}, "inputs.vo[0].audio must be a reference"),
+        ({"music": {"volume": 0.3}}, "inputs.music.audio must be a reference"),
+        ({"end_card": "Shop now"}, "inputs.end_card must be an object"),
+        ({"end_card": {"text": "x", "duration": 0}}, "inputs.end_card.duration must be > 0"),
+        ({"sfx": [{"audio": WHOOSH, "start": 1, "volume": -1}]}, "inputs.sfx[0].volume must be >= 0"),
+        ({"fps": 29.97}, "inputs.fps must be a whole number"),
+        ({"fps": True}, "inputs.fps must be a number"),
+        ({"shots": [{"clip": CLIP1, "duration": float("nan")}]}, "inputs.shots[0].duration must be a finite number"),
+        ({"aspect": ["9:16"]}, "inputs.aspect must be one of"),
+        ({"vo": "x"}, "inputs.vo must be a list"),
+        ({"shots": 5}, "inputs.shots must be a non-empty list"),
     ],
 )
 def test_invalid_inputs_fail_with_clear_message(overrides, message):
-    with pytest.raises(TimelineError, match=re.escape(f"v1.timeline: {message}")):
+    with pytest.raises(TimelineError) as info:
         build(**overrides)
+    assert isinstance(info.value, ProviderError)
+    assert str(info.value).startswith("v1.timeline: ")
+    assert re.search(re.escape(message), str(info.value))
+
+
+def test_clip_outside_project_directory_is_rejected():
+    outside = "/elsewhere/clip.mp4"
+    with pytest.raises(TimelineError, match=re.escape("/elsewhere/clip.mp4 is outside the project directory")):
+        build(media={outside: 2.0}, shots=[{"clip": outside, "duration": 2}])
+
+
+def test_same_missing_clip_in_two_shots_is_listed_once():
+    shots = [{"clip": CLIP1, "duration": 1}, {"clip": CLIP1, "duration": 1}]
+    t = build(media={}, shots=shots, vo=[], sfx=[], music=None)
+    assert t["placeholders"] == ["v1.s01.clip"]
+
+
+def test_media_paths_ignores_non_list_collections():
+    assert media_paths({"shots": 5, "vo": "x"}) == []
 
 
 def test_caption_chunks_split_by_words_and_time_by_length():

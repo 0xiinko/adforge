@@ -6,6 +6,7 @@ inputs (failed/blocked upstream nodes) become placeholders so preview and draft
 are always complete (spec §8). Output paths are project-relative POSIX strings."""
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -40,11 +41,15 @@ def _r(x: float) -> float:
 def media_paths(inputs: dict[str, Any]) -> list[str]:
     """Every input path the builder may look up in `media`, existing or not, in order."""
     paths: list[Any] = []
-    for shot in inputs.get("shots") or []:
-        if isinstance(shot, dict):
-            paths += [shot.get("clip"), shot.get("fallback")]
+    shots = inputs.get("shots")
+    if isinstance(shots, list):
+        for shot in shots:
+            if isinstance(shot, dict):
+                paths += [shot.get("clip"), shot.get("fallback")]
     for key in ("vo", "sfx"):
-        paths += [item.get("audio") for item in inputs.get(key) or [] if isinstance(item, dict)]
+        items = inputs.get(key)
+        if isinstance(items, list):
+            paths += [item.get("audio") for item in items if isinstance(item, dict)]
     for key, name in (("music", "audio"), ("end_card", "image")):
         if isinstance(inputs.get(key), dict):
             paths.append(inputs[key].get(name))
@@ -82,10 +87,14 @@ def build_timeline(
         return TimelineError(f"{node_id}: {msg}")
 
     def number(value: Any, where: str, *, positive: bool) -> float:
+        if isinstance(value, bool):
+            raise err(f"{where} must be a number")
         try:
             x = float(value)
         except (TypeError, ValueError):
             raise err(f"{where} must be a number") from None
+        if not math.isfinite(x):
+            raise err(f"{where} must be a finite number")
         if x < 0 or (positive and x == 0):
             raise err(f"{where} must be {'> 0' if positive else '>= 0'}")
         return x
@@ -96,21 +105,32 @@ def build_timeline(
         return item[key]
 
     def rel(path: str) -> str:
-        return Path(path).relative_to(project_dir).as_posix()
+        try:
+            return Path(path).relative_to(project_dir).as_posix()
+        except ValueError:
+            raise err(f"{path} is outside the project directory") from None
 
     def ident(path: str) -> str:
         return sources.get(path, path)
 
     aspect = inputs.get("aspect", "9:16")
-    if aspect not in ASPECTS:
+    if not isinstance(aspect, str) or aspect not in ASPECTS:
         raise err(f"inputs.aspect must be one of {', '.join(ASPECTS)}")
     width, height = ASPECTS[aspect]
-    fps = int(number(inputs.get("fps", DEFAULT_FPS), "inputs.fps", positive=True))
+    fps = number(inputs.get("fps", DEFAULT_FPS), "inputs.fps", positive=True)
+    if fps != int(fps):
+        raise err("inputs.fps must be a whole number")
+    fps = int(fps)
     shots = inputs.get("shots")
     if not isinstance(shots, list) or not shots:
         raise err("inputs.shots must be a non-empty list")
 
     placeholders: list[str] = []
+
+    def add_placeholder(node: str) -> None:
+        if node not in placeholders:
+            placeholders.append(node)
+
     warnings: list[str] = []
 
     video: list[dict] = []
@@ -133,7 +153,7 @@ def build_timeline(
             entry.update(node=ident(clip), path=rel(clip), kind="video",
                          hold=media[clip] + HOLD_TOLERANCE_S < duration)
         else:
-            placeholders.append(ident(clip))
+            add_placeholder(ident(clip))
             entry["placeholder_for"] = ident(clip)
             fallback = shot.get("fallback")
             if isinstance(fallback, str) and fallback in media:
@@ -146,7 +166,10 @@ def build_timeline(
     captions: list[dict] = []
     want_captions = bool(inputs.get("captions", True))
     cursor = VO_LEAD_IN_S
-    for i, line in enumerate(inputs.get("vo") or []):
+    vo_items = [] if inputs.get("vo") is None else inputs["vo"]
+    if not isinstance(vo_items, list):
+        raise err("inputs.vo must be a list")
+    for i, line in enumerate(vo_items):
         where = f"inputs.vo[{i}]"
         audio = ref(line, "audio", where)
         text = str(line.get("text", ""))
@@ -155,7 +178,7 @@ def build_timeline(
             duration, path = media[audio], rel(audio)
         else:
             duration, path = max(MIN_VO_S, SECONDS_PER_WORD * len(text.split())), None
-            placeholders.append(ident(audio))
+            add_placeholder(ident(audio))
         vo.append({"node": ident(audio), "path": path, "start": _r(start), "duration": _r(duration), "text": text})
         if want_captions:
             captions += caption_chunks(text, start, duration)
@@ -164,7 +187,10 @@ def build_timeline(
         cursor = start + duration + VO_GAP_S
 
     sfx: list[dict] = []
-    for i, fx in enumerate(inputs.get("sfx") or []):
+    sfx_items = [] if inputs.get("sfx") is None else inputs["sfx"]
+    if not isinstance(sfx_items, list):
+        raise err("inputs.sfx must be a list")
+    for i, fx in enumerate(sfx_items):
         where = f"inputs.sfx[{i}]"
         audio = ref(fx, "audio", where)
         start = number(fx.get("start"), f"{where}.start", positive=False)
@@ -173,7 +199,7 @@ def build_timeline(
             sfx.append({"node": ident(audio), "path": rel(audio), "start": _r(start),
                         "duration": _r(media[audio]), "volume": volume})
         else:
-            placeholders.append(ident(audio))
+            add_placeholder(ident(audio))
 
     end_card = None
     card = inputs.get("end_card")
@@ -188,7 +214,7 @@ def build_timeline(
             if image in media:
                 end_card.update(node=ident(image), path=rel(image))
             else:
-                placeholders.append(ident(image))
+                add_placeholder(ident(image))
     total = video_end + (end_card["duration"] if end_card else 0.0)
 
     music = None
@@ -200,7 +226,7 @@ def build_timeline(
             music = {"node": ident(audio), "path": rel(audio), "start": 0.0, "duration": _r(total),
                      "source_duration": _r(media[audio]), "volume": volume, "duck": bool(bed.get("duck", True))}
         else:
-            placeholders.append(ident(audio))
+            add_placeholder(ident(audio))
 
     return {
         "version": TIMELINE_VERSION,
