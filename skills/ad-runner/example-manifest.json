@@ -1,0 +1,154 @@
+{
+  "manifest_version": 1,
+  "project": "complete-kit-dustpan",
+  "nodes": [
+    {
+      "id": "v1.s01.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 frame. A woman in her late thirties stands at a kitchen counter in warm late-afternoon light, one hand resting on her stomach, a half-eaten salad beside her, expression tired and fed up. Natural, lived-in home kitchen, shallow depth of field. No text, no bottles.",
+      "inputs": {"aspect": "9:16"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.s01.clip",
+      "type": "video",
+      "prompt": "Slow push-in on the woman as she exhales and lets her hand drop from her stomach. Subtle, natural movement, steady camera, warm afternoon light holds.",
+      "inputs": {"first_frame": "@v1.s01.keyframe", "duration": 4, "aspect": "9:16"},
+      "depends_on": ["v1.s01.keyframe"]
+    },
+    {
+      "id": "v1.s02.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 packshot of Ellora Gut Cleanse (Step 1): a squat 30 mL amber-brown glass dropper bottle with round shoulders, a matte black ribbed child-resistant screw collar and a smooth black rubber dropper bulb, the liquid inside showing as a darker column, standing upright dead centre. Deep sea-green / teal label wrapping the lower two-thirds: \"Ellora\" in white in a clean geometric sans top left, \"Gut Cleanse\" set large and bold across two lines in white, a thin white rule, then \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals; on the right a white single-stroke line drawing of a looped, continuous intestine running the full height; a small white outlined circle reading \"30 SERVINGS\"; \"Dietary Supplement / 30 mL\" at the bottom left and \"(1 fl oz)\" at the bottom right; a thin vertical white rule just inside the left edge. Seamless warm greige backdrop, one soft key light from the upper left, soft shadow falling to the right, no props, no hands.",
+      "inputs": {"aspect": "9:16"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.s02.clip",
+      "type": "video",
+      "prompt": "Slow 15-degree orbit around the bottle. The label stays sharp and readable, light glints softly on the amber glass, backdrop and shadow stay steady.",
+      "inputs": {"first_frame": "@v1.s02.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["v1.s02.keyframe"]
+    },
+    {
+      "id": "v1.s03.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 frame, looking down. A wooden broom has swept a small pile of dust and crumbs into the middle of a clean, pale kitchen floor. There is no dustpan anywhere in the frame. Soft daylight, minimal composition, slightly wry mood. No people, no text, no bottles.",
+      "inputs": {"aspect": "9:16"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.s03.clip",
+      "type": "video",
+      "prompt": "The broom gives one last short sweep and stops. The dust pile just sits there; a faint drift of dust settles back around it. Camera holds still.",
+      "inputs": {"first_frame": "@v1.s03.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["v1.s03.keyframe"]
+    },
+    {
+      "id": "v1.s04.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 packshot of two identical squat 30 mL amber-brown glass dropper bottles with round shoulders, matte black ribbed child-resistant screw collars and smooth black rubber dropper bulbs, standing upright side by side, centred. Left: Ellora Gut Cleanse (Step 1), deep sea-green / teal label with \"Ellora\" in white top left, \"Gut Cleanse\" large and bold across two lines in white, a thin white rule, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white single-stroke intestine line drawing on the right, a \"30 SERVINGS\" circle, \"Dietary Supplement / 30 mL\" bottom left and \"(1 fl oz)\" bottom right. Right: Ellora Zeolite Drops (Step 2), identical layout on a dusty slate-blue label with \"Ellora\" top left, \"Zeolite Drops\" large and bold across two lines in white, a thin white rule, \"NATURAL HEAVY METAL DETOX SUPPORT\" in small white capitals, a white outline drawing of an elongated six-sided crystal on the right, the same \"30 SERVINGS\" circle, \"Dietary supplement / 30 mL\" and \"(1 fl oz)\" at the bottom. Seamless warm greige backdrop, one soft key light from the upper left, soft shadows falling to the right, no props, no hands.",
+      "inputs": {"aspect": "9:16"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.s04.clip",
+      "type": "video",
+      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement.",
+      "inputs": {"first_frame": "@v1.s04.keyframe", "duration": 5, "aspect": "9:16"},
+      "depends_on": ["v1.s04.keyframe"]
+    },
+    {
+      "id": "v1.s05.keyframe",
+      "type": "image",
+      "prompt": "Photoreal vertical 9:16 frame. The same woman, now relaxed and smiling slightly, at a bright kitchen counter, holding Ellora Gut Cleanse (Step 1) over a tall glass of water: a squat 30 mL amber-brown glass dropper bottle with a matte black ribbed collar and black rubber dropper bulb, deep sea-green / teal label with \"Ellora\" and \"Gut Cleanse\" in white, \"DIGESTIVE HEALTH & GUT BALANCE\" in small white capitals, a white intestine line drawing, and \"Dietary Supplement / 30 mL\" legible at the bottom. Morning light, clean and calm.",
+      "inputs": {"aspect": "9:16"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.s05.clip",
+      "type": "video",
+      "prompt": "She squeezes the dropper bulb and one dropperful falls into the glass of water, the liquid swirling darker for a moment before it settles. Calm, satisfied expression. Slow push-in.",
+      "inputs": {"first_frame": "@v1.s05.keyframe", "duration": 4, "aspect": "9:16"},
+      "depends_on": ["v1.s05.keyframe"]
+    },
+    {
+      "id": "v1.vo.l01",
+      "type": "tts",
+      "inputs": {"text": "Bloated by three p.m. every day, no matter what you eat?", "voice": "narrator"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.vo.l02",
+      "type": "tts",
+      "inputs": {"text": "Most cleanses sell you step one and stop there.", "voice": "narrator"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.vo.l03",
+      "type": "tts",
+      "inputs": {"text": "That's a broom with no dustpan. What gets swept up just sits there.", "voice": "narrator"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.vo.l04",
+      "type": "tts",
+      "inputs": {"text": "Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush.", "voice": "narrator"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.vo.l05",
+      "type": "tts",
+      "inputs": {"text": "The Complete Kit is $49.99, with a 30-day money-back guarantee.", "voice": "narrator"},
+      "depends_on": []
+    },
+    {
+      "id": "v1.music.bed",
+      "type": "music",
+      "prompt": "Warm, understated acoustic groove, light and confident, no vocals.",
+      "inputs": {"duration": 25},
+      "depends_on": []
+    },
+    {
+      "id": "v1.timeline",
+      "type": "timeline",
+      "inputs": {
+        "aspect": "9:16",
+        "shots": [
+          {"clip": "@v1.s01.clip", "duration": 4, "fallback": "@v1.s01.keyframe"},
+          {"clip": "@v1.s02.clip", "duration": 5, "fallback": "@v1.s02.keyframe"},
+          {"clip": "@v1.s03.clip", "duration": 5, "fallback": "@v1.s03.keyframe"},
+          {"clip": "@v1.s04.clip", "duration": 5, "fallback": "@v1.s04.keyframe"},
+          {"clip": "@v1.s05.clip", "duration": 4, "fallback": "@v1.s05.keyframe"}
+        ],
+        "vo": [
+          {"audio": "@v1.vo.l01", "text": "Bloated by three p.m. every day, no matter what you eat?"},
+          {"audio": "@v1.vo.l02", "text": "Most cleanses sell you step one and stop there."},
+          {"audio": "@v1.vo.l03", "text": "That's a broom with no dustpan. What gets swept up just sits there."},
+          {"audio": "@v1.vo.l04", "text": "Ellora is both steps: Gut Cleanse first, then Zeolite to bind and flush."},
+          {"audio": "@v1.vo.l05", "text": "The Complete Kit is $49.99, with a 30-day money-back guarantee."}
+        ],
+        "music": {"audio": "@v1.music.bed"},
+        "end_card": {"text": "Complete Kit $49.99 · myellora.com", "duration": 2},
+        "captions": true
+      },
+      "depends_on": [
+        "v1.s01.clip", "v1.s02.clip", "v1.s03.clip", "v1.s04.clip", "v1.s05.clip",
+        "v1.s01.keyframe", "v1.s02.keyframe", "v1.s03.keyframe", "v1.s04.keyframe", "v1.s05.keyframe",
+        "v1.vo.l01", "v1.vo.l02", "v1.vo.l03", "v1.vo.l04", "v1.vo.l05", "v1.music.bed"
+      ]
+    },
+    {
+      "id": "v1.preview",
+      "type": "preview",
+      "inputs": {"timeline": "@v1.timeline"},
+      "depends_on": ["v1.timeline"]
+    },
+    {
+      "id": "v1.capcut_draft",
+      "type": "capcut_draft",
+      "inputs": {"timeline": "@v1.timeline"},
+      "depends_on": ["v1.timeline"]
+    }
+  ]
+}

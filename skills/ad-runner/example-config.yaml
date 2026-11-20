@@ -1,0 +1,9 @@
+# The config.yaml /ad writes into projects/<slug>/. Ellora renders every image and
+# video; Claude supplies them with `adengine supply`. Audio stays mock until real
+# TTS/music providers land. Model IDs come from Ellora's list_models.
+external_providers: [ellora]
+routing:
+  image: {provider: ellora, model: nano-banana-pro}
+  video: {provider: ellora, model: kling-3.0/video}
+retry:
+  max_attempts: 3
