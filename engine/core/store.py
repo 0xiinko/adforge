@@ -152,7 +152,14 @@ class ProjectStore:
             shutil.copytree(src, staged)
         else:
             shutil.copy2(src, staged)
-        return self.commit(node, staged, pin=True)
+        new_version = self.commit(node, staged, pin=True)
+        st = self.get(node.id)
+        ext = (st.external_history or {}).get(str(version))
+        if ext is not None:  # a supplied file: later external nodes need its provider-side ref
+            st.external = ext
+            st.external_history = {**(st.external_history or {}), str(new_version): ext}
+            self.save()
+        return new_version
 
     def pins(self) -> dict[str, int]:
         return {k: v.pinned_version for k, v in self.nodes.items() if v.pinned_version is not None}
