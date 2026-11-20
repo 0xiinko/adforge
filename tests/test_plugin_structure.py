@@ -72,3 +72,10 @@ def test_prompt_craft_names_the_default_models():
                    "Dietary Supplement", "Natural ambient sound, no music."):
         assert needle in body, needle
     assert "never describe sound" not in body
+
+
+def test_strategist_detects_supplied_scripts_and_story():
+    body = (ROOT / "skills" / "ad-strategist" / "SKILL.md").read_text()
+    for needle in ("Script source: supplied", "Script source: written", "hooks + shared body",
+                   "script-source.md", "The brief's story wins", "Never invent a script"):
+        assert needle in body, needle

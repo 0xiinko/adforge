@@ -25,10 +25,16 @@ Every later stage reads this file instead of calling Ellora again. If the projec
 
 If the Ellora connector is not available in this session, stop and tell the user: /ad for Ellora needs the Ellora Studio connector.
 
-## 2. Slug and brief
+## 2. Slug, brief and script source
 
 - Slug: `<product>-<angle>` in lowercase with hyphens, e.g. `complete-kit-dustpan`. If `projects/<slug>/` already holds a different ad, add `-2`, `-3`.
-- Write the user's brief, word for word, to `projects/<slug>/brief.md`.
+- Write the user's brief, word for word, to `projects/<slug>/brief.md`. If the user gave a file path (`.txt`, `.md`), read it and copy its text; for a Google Doc, PDF or Word file, ask the user to paste the text.
+- Decide the **script source**:
+  - **Script source: supplied** — the brief already contains spoken copy: hook paragraphs, a body, a full monologue, lines in quotes. Copy that copy, word for word and in order, to `projects/<slug>/script-source.md`, split into sections: `## Hook 1 — <name>`, `## Hook 2 — <name>`, …, and `## Body` when there is one (a single monologue with no hooks is `## Hook 1` with no body). Keep any stage notes from the brief (who speaks, tone, banners) under `## Notes`.
+  - **Script source: written** — the brief describes the product, audience, angle or a story, but has no spoken copy. Never invent a script at this stage; script-writer writes it.
+- Decide the **structure**:
+  - **hooks + shared body** — the supplied script has several hooks that each lead into the same body (marked "→ BODY", "BODY", "+ body"). One variant per hook; the body is rendered once and shared.
+  - **full variants** — anything else: each variant is a complete ad.
 
 ## 3. Defaults
 
@@ -47,7 +53,9 @@ Use the brief's value when it gives one; otherwise the default, marked *(default
 
 ## 4. Angles
 
-Pick one angle per variant, each different, from the brand's strongest material:
+**The brief's story wins.** If the brief describes a story, a concept, characters, a setting or scenes, that is the creative direction: v1 (and every variant, unless the brief asks for alternatives) follows it, and `plan.md` records its specifics (who is in it, where, what happens) under the variant. With **Script source: supplied**, each variant's angle is its hook's name and argument.
+
+Only when the brief gives no story and no script, pick one angle per variant, each different, from the brand's strongest material:
 
 1. **Broom with no dustpan** — most cleanses sell Step 1 alone; Ellora is the complete two-step protocol.
 2. **The week-two crash** — people quit cleanses at week two; Step 2 is the part that was missing.
@@ -69,11 +77,19 @@ If the brief names an angle, use it for v1.
 - Length: <...>
 - Aspect: <...>
 - Variants: <N>
+- Script source: <supplied | written>
+- Structure: <hooks + shared body | full variants>
 - Shots per variant: <...>
 
 ## Angles
 - v1: <angle name> — <one line on how this ad argues it>
 - v2: ...
+
+## Story and cast notes
+- <from the brief: who is on screen, how they talk, where it happens; "none given" if none>
+
+## Body
+- <only for hooks + shared body: one line on what the body argues; the copy is in script-source.md>
 
 ## Assumptions
 - <every field above marked *(default)*, one line each>
