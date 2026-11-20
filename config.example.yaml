@@ -1,21 +1,22 @@
 # AdForge engine config. Copy to projects/<slug>/config.yaml or pass --config.
 # Model names live here, never in engine code. Secrets come from env / .env only.
 routing:
-  image:        {provider: mock, model: mock-image}
-  video:        {provider: mock, model: mock-video}
-  tts:          {provider: mock, model: mock-tts}
-  sfx:          {provider: mock, model: mock-sfx}
-  music:        {provider: mock, model: mock-music}
-  timeline:     {provider: mock, model: mock-timeline}
-  preview:      {provider: mock, model: mock-preview}
-  capcut_draft: {provider: mock, model: mock-capcut_draft}
+  image:        {provider: mock_media, model: mock-image}
+  video:        {provider: mock_media, model: mock-video}
+  tts:          {provider: mock_media, model: mock-tts}
+  sfx:          {provider: mock_media, model: mock-sfx}
+  music:        {provider: mock_media, model: mock-music}
+  timeline:     {provider: assembly, model: builtin}
+  preview:      {provider: assembly, model: builtin}
+  capcut_draft: {provider: assembly, model: builtin}
 
 # Max simultaneous calls per provider. Real providers arrive in plan 3, e.g.
 #   openai_image: 8
 #   seedance: 4
 #   fishaudio: 10
 concurrency:
-  mock: 8
+  mock_media: 4
+  assembly: 2
 default_concurrency: 4
 
 # Temporary failures (429/5xx/timeouts) retry with exponential backoff.
@@ -23,3 +24,19 @@ retry:
   max_attempts: 3
   base_delay_s: 1.0
   max_delay_s: 30.0
+
+# External binaries used by assembly and mock_media (sudo apt install ffmpeg).
+assembly:
+  ffmpeg: ffmpeg
+  ffprobe: ffprobe
+  # Defaults: macOS → font Helvetica + font_file /System/Library/Fonts/Helvetica.ttc; Linux → DejaVu Sans.
+  # font: Helvetica
+  # font_file: /System/Library/Fonts/Helvetica.ttc
+
+# CapCut export. Unset drafts_dir keeps each draft only in projects/<slug>/vN/capcut_draft.
+capcut:
+  # Folder CapCut scans for drafts. On a Mac running CapCut desktop this is usually:
+  # drafts_dir: ~/Movies/CapCut/User Data/Projects/com.lveditor.draft
+  # Only when CapCut runs on a DIFFERENT machine: how this machine's projects/ folder is seen there.
+  # Leave unset when the engine and CapCut share the Mac (paths are already correct).
+  # media_root: /Volumes/Shared/AdForge/projects
