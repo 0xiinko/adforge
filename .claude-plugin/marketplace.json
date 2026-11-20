@@ -1,0 +1,7 @@
+{
+  "name": "adforge-local",
+  "owner": { "name": "AdForge" },
+  "plugins": [
+    { "name": "adforge", "source": "./" }
+  ]
+}

@@ -8,7 +8,9 @@
 #   2. Installs uv (Python toolchain) if missing.
 #   3. Installs ffmpeg if missing (macOS: brew; Linux: tells you the apt command).
 #   4. Installs the `adengine` command from this checkout (editable, so `git pull` updates it).
-#   5. Runs `adengine doctor`. On macOS, if the stock ffmpeg lacks required filters
+#   5. Installs the AdForge Claude Code plugin (/ad and its skills) from this checkout,
+#      if the `claude` CLI is available; re-running updates it.
+#   6. Runs `adengine doctor`. On macOS, if the stock ffmpeg lacks required filters
 #      (libass/freetype), it offers to switch to the homebrew-ffmpeg tap build.
 set -euo pipefail
 
@@ -63,11 +65,28 @@ export PATH="$HOME/.local/bin:$PATH"
 have adengine || die "adengine not on PATH. Add this to your shell profile, then re-run:
     export PATH=\"\$HOME/.local/bin:\$PATH\""
 
-# --- 5. doctor ----------------------------------------------------------------
+# --- 5. Claude Code plugin ----------------------------------------------------
+PLUGIN_NOTE=""
+if have claude; then
+  say "Installing the AdForge Claude Code plugin (/ad)"
+  claude plugin marketplace add "$REPO_DIR"
+  claude plugin marketplace update adforge-local
+  if claude plugin install adforge@adforge-local --scope user; then
+    claude plugin update adforge@adforge-local --scope user || true
+    PLUGIN_NOTE="Plugin installed: restart Claude Code, then run /ad <brief>. /ad needs the Ellora Studio connector enabled in your claude.ai connector settings."
+  else
+    warn "Plugin install failed; the engine still works. Retry later with: bash install.sh"
+  fi
+else
+  PLUGIN_NOTE="Claude Code CLI not found, so the /ad plugin was not installed. Install Claude Code, then re-run: bash install.sh"
+fi
+
+finish() { say "AdForge engine installed. Try: adengine --help"; [ -n "$PLUGIN_NOTE" ] && say "$PLUGIN_NOTE"; exit 0; }
+
+# --- 6. doctor ----------------------------------------------------------------
 say "Checking ffmpeg filters and fonts"
 if adengine doctor; then
-  say "AdForge engine installed. Try: adengine --help"
-  exit 0
+  finish
 fi
 
 if [ "$OS" = "Darwin" ]; then
@@ -81,7 +100,7 @@ if [ "$OS" = "Darwin" ]; then
     brew uninstall --ignore-dependencies ffmpeg || true
     brew tap homebrew-ffmpeg/ffmpeg
     brew install homebrew-ffmpeg/ffmpeg/ffmpeg
-    adengine doctor && { say "AdForge engine installed. Try: adengine --help"; exit 0; }
+    adengine doctor && finish
   fi
   die "ffmpeg still lacks required filters. See the MISSING lines above, install an ffmpeg
 build with libass and freetype, then run: adengine doctor"

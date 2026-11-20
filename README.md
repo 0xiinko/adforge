@@ -12,8 +12,10 @@ bash install.sh
 Or open this folder in Claude Code and say **"install this engine"** — Claude follows
 [CLAUDE.md](CLAUDE.md) and runs the same script.
 
-The script installs uv, ffmpeg and the `adengine` command, then runs `adengine doctor` to
-check ffmpeg has every filter AdForge needs. Re-running it is safe.
+The script installs uv, ffmpeg, the `adengine` command and the `adforge` Claude Code plugin
+(`/ad`), then runs `adengine doctor` to check ffmpeg has every filter AdForge needs.
+Re-running it is safe and updates the plugin. Afterwards restart Claude Code, enable the
+Ellora Studio connector in claude.ai, and run `/ad <brief>`.
 
 ## Quick try
 
