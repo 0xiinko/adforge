@@ -75,7 +75,7 @@ ledger.jsonl           # every paid call
 refs/                  # product_hero.png, creator/location refs
 v1/ v2/ v3/
   shots/s03/keyframe.png  clip.mp4  versions/
-  vo/l04.wav   sfx/whoosh02.wav   music/bed.mp3
+  vo/l04.wav   sfx/whoosh02.wav   music/bed.wav
   timeline.json  preview.mp4  capcut_draft/
 ```
 
