@@ -14,6 +14,7 @@ from engine.core.graph import Node
 NODE_TYPES: tuple[str, ...] = (
     "image", "video", "tts", "sfx", "music", "timeline", "preview", "capcut_draft",
 )
+EXTERNAL_TYPES = frozenset({"image", "video"})  # node types an external provider may render
 
 
 class ConfigError(ValueError):
@@ -67,6 +68,7 @@ class EngineConfig:
     retry: RetryConfig = field(default_factory=RetryConfig)
     assembly: AssemblyConfig = field(default_factory=AssemblyConfig)
     capcut: CapcutConfig = field(default_factory=CapcutConfig)
+    external_providers: frozenset[str] = frozenset()  # never called; outputs are supplied (adengine supply)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "EngineConfig":
@@ -103,6 +105,15 @@ class EngineConfig:
             drafts_dir=Path(str(cap["drafts_dir"])).expanduser() if cap.get("drafts_dir") else None,
             media_root=str(cap["media_root"]).rstrip("/\\") if cap.get("media_root") else None,
         )
+        ext = data.get("external_providers") or []
+        if not isinstance(ext, list) or not all(isinstance(x, str) and x for x in ext):
+            raise ConfigError("external_providers must be a list of provider names")
+        cfg.external_providers = frozenset(ext)
+        for node_type, route in cfg.routing.items():
+            if route.provider in cfg.external_providers and node_type not in EXTERNAL_TYPES:
+                raise ConfigError(
+                    f"routing.{node_type}: external provider {route.provider!r} can only render image or video nodes"
+                )
         return cfg
 
     def route(self, node: Node) -> Route:
@@ -118,6 +129,15 @@ class EngineConfig:
                 f"routing default for {node.type}"
             )
         return Route(provider, default.model)
+
+    def external_route(self, node: Node) -> Route | None:
+        """The node's route if it goes to an external provider, else None. Also None when
+        routing itself fails: the scheduler reports that error when it tries the node."""
+        try:
+            route = self.route(node)
+        except ConfigError:
+            return None
+        return route if route.provider in self.external_providers else None
 
     def limit(self, provider: str) -> int:
         return self.concurrency.get(provider, self.default_concurrency)

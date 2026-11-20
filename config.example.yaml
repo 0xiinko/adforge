@@ -23,3 +23,11 @@ retry:
   max_attempts: 3
   base_delay_s: 1.0
   max_delay_s: 30.0
+
+# Providers the engine never calls. Nodes routed to one wait as awaiting_external
+# until Claude renders them (e.g. in Ellora Studio) and hands the file in with
+# `adengine supply`. Image and video only. Example:
+#   external_providers: [ellora]
+#   routing:
+#     image: {provider: ellora, model: <Ellora modelId from list_models>}
+#     video: {provider: ellora, model: <Ellora modelId>}

@@ -1,6 +1,8 @@
 import pytest
 
-from engine.config import AssemblyConfig, ConfigError, EngineConfig, Route, default_font, default_font_file, load_config
+from engine.config import (
+    EXTERNAL_TYPES, AssemblyConfig, ConfigError, EngineConfig, Route, default_font, default_font_file, load_config,
+)
 from engine.core.graph import Node
 
 
@@ -81,3 +83,39 @@ def test_assembly_and_capcut_from_dict(tmp_path):
     assert EngineConfig.from_dict({"assembly": {"font_file": "/fonts/Inter.ttf"}}).assembly.font_file == "/fonts/Inter.ttf"
     assert cfg.capcut.drafts_dir == tmp_path / "drafts"
     assert cfg.capcut.media_root == "C:/AdForge/projects"
+
+
+def _ellora_cfg(**routing):
+    return EngineConfig.from_dict({"external_providers": ["ellora"], "routing": routing})
+
+
+def test_external_route_only_for_external_providers():
+    cfg = _ellora_cfg(image={"provider": "ellora", "model": "img-1"})
+    img = Node(id="refs.hero", type="image", inputs={}, depends_on=[])
+    tts = Node(id="v1.vo.l01", type="tts", inputs={}, depends_on=[])
+    assert cfg.external_providers == frozenset({"ellora"})
+    assert cfg.external_route(img) == Route("ellora", "img-1")
+    assert cfg.external_route(tts) is None
+
+
+def test_external_route_none_when_routing_fails():
+    cfg = _ellora_cfg()
+    bad = Node(id="refs.hero", type="image", inputs={}, depends_on=[], provider="ellora")  # no model
+    assert cfg.external_route(bad) is None
+
+
+def test_external_provider_only_for_image_and_video():
+    assert EXTERNAL_TYPES == frozenset({"image", "video"})
+    with pytest.raises(ConfigError, match=r"routing\.tts"):
+        _ellora_cfg(tts={"provider": "ellora", "model": "m"})
+
+
+def test_external_providers_must_be_a_list_of_names():
+    with pytest.raises(ConfigError, match="external_providers"):
+        EngineConfig.from_dict({"external_providers": "ellora"})
+    with pytest.raises(ConfigError, match="external_providers"):
+        EngineConfig.from_dict({"external_providers": [""]})
+
+
+def test_no_external_providers_by_default():
+    assert EngineConfig().external_providers == frozenset()
