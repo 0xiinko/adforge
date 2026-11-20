@@ -41,8 +41,9 @@ def inputs(**overrides):
     return base
 
 
-def build(media=MEDIA, **overrides):
-    return build_timeline("v1.timeline", inputs(**overrides), sources=SOURCES, project_dir=P, media=dict(media))
+def build(media=MEDIA, audio_paths=None, **overrides):
+    kw = {} if audio_paths is None else {"audio_paths": audio_paths}
+    return build_timeline("v1.timeline", inputs(**overrides), sources=SOURCES, project_dir=P, media=dict(media), **kw)
 
 
 def test_basic_timeline_layout():
@@ -193,3 +194,48 @@ def test_warns_when_clip_and_fallback_are_both_missing():
 
 def test_captions_null_means_default_on():
     assert build(captions=None)["tracks"]["captions"] != []
+
+
+def test_video_entries_always_carry_an_audio_flag_default_false():
+    t = build()
+    assert [e["audio"] for e in t["tracks"]["video"]] == [False, False]
+
+
+def test_shot_audio_uses_clip_audio_only_when_the_clip_has_an_audio_stream():
+    shots = [{"clip": CLIP1, "duration": 3, "audio": True}, {"clip": CLIP2, "duration": 2.5, "audio": True}]
+    t = build(shots=shots, vo=[], audio_paths=frozenset({CLIP1}))
+    assert [e["audio"] for e in t["tracks"]["video"]] == [True, False]
+    assert t["warnings"] == ["v1.s02.clip has no audio track"]
+
+
+def test_placeholder_shots_never_have_audio():
+    shots = [{"clip": CLIP1, "duration": 3, "audio": True, "fallback": KF1}]
+    t = build(media={KF1: 0.0}, shots=shots, vo=[], sfx=[], music=None, audio_paths=frozenset({CLIP1, KF1}))
+    v = t["tracks"]["video"][0]
+    assert (v["kind"], v["audio"]) == ("image", False)
+    assert t["warnings"] == []
+
+
+def test_shot_text_becomes_captions_before_vo_captions():
+    shots = [{"clip": CLIP1, "duration": 3, "text": "Hello there friend"},
+             {"clip": CLIP2, "duration": 2.5, "text": "Bye"}, ]
+    t = build(shots=shots, vo=[{"audio": L02, "text": "Try it today"}])
+    assert t["tracks"]["captions"] == [
+        {"start": 0.0, "end": 3.0, "text": "Hello there friend"},
+        {"start": 3.0, "end": 5.5, "text": "Bye"},
+        {"start": 0.2, "end": 1.2, "text": "Try it today"},
+    ]
+    assert build(shots=shots, vo=[], captions=False)["tracks"]["captions"] == []
+
+
+@pytest.mark.parametrize(
+    "shot,message",
+    [
+        ({"audio": "yes"}, "inputs.shots[0].audio must be true or false"),
+        ({"audio": 1}, "inputs.shots[0].audio must be true or false"),
+        ({"text": 5}, "inputs.shots[0].text must be a string"),
+    ],
+)
+def test_invalid_shot_audio_and_text(shot, message):
+    with pytest.raises(TimelineError, match=re.escape(message)):
+        build(shots=[{"clip": CLIP1, "duration": 3, **shot}])

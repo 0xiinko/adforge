@@ -49,6 +49,7 @@
     ],
     "video": [
       {
+        "audio": false,
         "duration": 3.0,
         "hold": false,
         "kind": "video",
@@ -60,6 +61,7 @@
         "transition_s": 0.0
       },
       {
+        "audio": false,
         "duration": 2.5,
         "hold": true,
         "kind": "video",

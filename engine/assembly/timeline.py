@@ -57,7 +57,7 @@ def media_paths(inputs: dict[str, Any]) -> list[str]:
 
 
 def caption_chunks(text: str, start: float, duration: float, words_per_chunk: int = WORDS_PER_CAPTION) -> list[dict]:
-    """Split a VO line into short caption cues, timed in proportion to their length.
+    """Split a spoken line (VO or in-clip) into short caption cues, timed in proportion to their length.
     (Word-level timestamps from the TTS provider replace this estimate in plan 3.)"""
     words = text.split()
     if not words:
@@ -79,9 +79,11 @@ def build_timeline(
     sources: dict[str, str],
     project_dir: Path,
     media: dict[str, float],
+    audio_paths: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """`sources` maps input path → node id. `media` maps each input path that exists
-    to its duration in seconds (0.0 for images)."""
+    to its duration in seconds (0.0 for images). `audio_paths` are the input paths
+    known to contain an audio stream (a shot with `audio: true` uses its clip's own sound)."""
 
     def err(msg: str) -> TimelineError:
         return TimelineError(f"{node_id}: {msg}")
@@ -134,6 +136,7 @@ def build_timeline(
     warnings: list[str] = []
 
     video: list[dict] = []
+    shot_lines: list[tuple[str, float, float]] = []
     t = 0.0
     for i, shot in enumerate(shots):
         where = f"inputs.shots[{i}]"
@@ -144,14 +147,22 @@ def build_timeline(
             raise err(f"{where}.transition must be one of {', '.join(TRANSITIONS)}")
         if i == 0:
             transition = "cut"
+        use_audio = shot.get("audio", False)
+        if not isinstance(use_audio, bool):
+            raise err(f"{where}.audio must be true or false")
+        text = "" if shot.get("text") is None else shot["text"]
+        if not isinstance(text, str):
+            raise err(f"{where}.text must be a string")
         entry = {
             "node": None, "path": None, "kind": "slate", "start": _r(t), "duration": _r(duration),
             "transition": transition, "transition_s": CROSSFADE_S if transition == "crossfade" else 0.0,
-            "hold": False, "placeholder_for": None,
+            "hold": False, "placeholder_for": None, "audio": False,
         }
         if clip in media:
             entry.update(node=ident(clip), path=rel(clip), kind="video",
-                         hold=media[clip] + HOLD_TOLERANCE_S < duration)
+                         hold=media[clip] + HOLD_TOLERANCE_S < duration, audio=use_audio and clip in audio_paths)
+            if use_audio and clip not in audio_paths:
+                warnings.append(f"{ident(clip)} has no audio track")
         else:
             add_placeholder(ident(clip))
             entry["placeholder_for"] = ident(clip)
@@ -161,6 +172,8 @@ def build_timeline(
             elif isinstance(fallback, str):
                 warnings.append(f"{ident(clip)} and its fallback {ident(fallback)} are both missing")
         video.append(entry)
+        if text.strip():
+            shot_lines.append((text, t, duration))
         t += duration
     video_end = t
 
@@ -169,6 +182,9 @@ def build_timeline(
     want_captions = True if inputs.get("captions") is None else inputs["captions"]
     if not isinstance(want_captions, bool):
         raise err("inputs.captions must be true or false")
+    if want_captions:
+        for text, start, duration in shot_lines:
+            captions += caption_chunks(text, start, duration)
     cursor = VO_LEAD_IN_S
     vo_items = [] if inputs.get("vo") is None else inputs["vo"]
     if not isinstance(vo_items, list):

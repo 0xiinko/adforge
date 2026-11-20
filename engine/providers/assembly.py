@@ -40,11 +40,19 @@ class AssemblyProvider(Provider):
 
     async def _timeline(self, ctx: CallContext, inputs: dict[str, Any]) -> Path:
         media: dict[str, float] = {}
+        audio_paths: set[str] = set()
         for path in dict.fromkeys(media_paths(inputs)):
             p = Path(path)
             if ctx.sources.get(path) not in ctx.unavailable and p.exists():
-                media[path] = 0.0 if p.suffix.lower() in IMAGE_SUFFIXES else (await self.ff.probe(p)).duration
-        data = build_timeline(ctx.node_id, inputs, sources=ctx.sources, project_dir=ctx.project_dir, media=media)
+                if p.suffix.lower() in IMAGE_SUFFIXES:
+                    media[path] = 0.0
+                else:
+                    info = await self.ff.probe(p)
+                    media[path] = info.duration
+                    if info.has_audio:
+                        audio_paths.add(path)
+        data = build_timeline(ctx.node_id, inputs, sources=ctx.sources, project_dir=ctx.project_dir, media=media,
+                              audio_paths=frozenset(audio_paths))
         out = ctx.work_dir / "timeline.json"
         out.write_text(json.dumps(data, indent=2) + "\n")
         return out

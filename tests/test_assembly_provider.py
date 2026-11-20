@@ -41,3 +41,25 @@ def test_timeline_with_all_inputs_missing_needs_no_ffmpeg(tmp_path):
     data = json.loads(out.read_text())
     assert data["placeholders"] == ["v1.s01.clip"] and data["tracks"]["video"][0]["kind"] == "slate"
     assert AssemblyProvider(FFmpeg()).cost("timeline", {}) == 0.0
+
+
+def test_timeline_marks_shots_whose_clip_has_an_audio_stream(ffmpeg, tmp_path):
+    async def scenario():
+        clips = {}
+        for name, extra in (("s01", ["-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-c:a", "aac"]),
+                            ("s02", [])):
+            path = tmp_path / f"v1/shots/{name}/clip.mp4"
+            path.parent.mkdir(parents=True)
+            await ffmpeg.run(["-f", "lavfi", "-i", "color=c=red:s=160x120:r=24", *extra, "-t", "1",
+                              "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", str(path)])
+            clips[name] = str(path)
+        c = ctx(tmp_path, "v1.timeline", project_dir=tmp_path,
+                sources={clips["s01"]: "v1.s01.clip", clips["s02"]: "v1.s02.clip"})
+        shots = [{"clip": clips["s01"], "duration": 1, "audio": True},
+                 {"clip": clips["s02"], "duration": 1, "audio": True}]
+        out = await AssemblyProvider(ffmpeg).assemble(c, "timeline", {"shots": shots})
+        return json.loads(out.read_text())
+
+    data = asyncio.run(scenario())
+    assert [e["audio"] for e in data["tracks"]["video"]] == [True, False]
+    assert data["warnings"] == ["v1.s02.clip has no audio track"]
