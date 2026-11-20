@@ -5,10 +5,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
-from engine.config import EngineConfig, load_config
+from engine.config import EXTERNAL_TYPES, EngineConfig, load_config
 from engine.core.cache import compute_fingerprints
 from engine.core.executors import cost_params
-from engine.core.graph import Manifest, load_manifest, save_manifest
+from engine.core.graph import Manifest, ManifestError, Node, find_refs, load_manifest, resolve_refs, save_manifest
 from engine.core.ledger import Ledger
 from engine.core.paths import resolve_inputs
 from engine.core.scheduler import RunReport, Scheduler
@@ -26,6 +26,7 @@ class PlannedNode:
     model: str
     cost_usd: float
     provider_available: bool
+    external: bool = False  # supplied by Claude via `adengine supply`; the engine never calls it
 
 
 @dataclass
@@ -63,12 +64,43 @@ class Project:
     def _providers(self, providers: dict[str, Provider] | None) -> dict[str, Provider]:
         return providers if providers is not None else build_providers(self.config)
 
+    def external_errors(self, manifest: Manifest | None = None) -> list[str]:
+        """Manifest problems that would leave external nodes impossible to supply."""
+        manifest = manifest or self.manifest()
+        routes = {nid: self.config.external_route(n) for nid, n in manifest.nodes.items()}
+        errors: list[str] = []
+        for nid in manifest.topo_order():
+            route = routes[nid]
+            if route is None:
+                continue
+            node = manifest.nodes[nid]
+            if node.type not in EXTERNAL_TYPES:
+                errors.append(f"{nid}: external provider {route.provider} can only render image or video nodes")
+                continue
+            for ref in dict.fromkeys(find_refs(node.inputs)):
+                if routes.get(ref) is None:
+                    errors.append(
+                        f"{nid}: input @{ref} is rendered locally, but {route.provider} cannot read local "
+                        f"files; route {ref} to {route.provider} too"
+                    )
+            if node.type == "image" and node.inputs.get("n", 1) != 1:
+                errors.append(f"{nid}: external image nodes render one candidate; remove inputs.n or set it to 1")
+        return errors
+
+    def _check_external(self, manifest: Manifest) -> None:
+        errors = self.external_errors(manifest)
+        if errors:
+            raise ManifestError(errors)
+
     async def run(self, targets: Iterable[str] | None = None, providers: dict[str, Provider] | None = None) -> RunReport:
-        scheduler = Scheduler(self.manifest(), self.store(), self.config, self._providers(providers), self.ledger())
+        manifest = self.manifest()
+        self._check_external(manifest)
+        scheduler = Scheduler(manifest, self.store(), self.config, self._providers(providers), self.ledger())
         return await scheduler.run(targets)
 
     def dry_run(self, targets: Iterable[str] | None = None, providers: dict[str, Provider] | None = None) -> DryRunReport:
         manifest, store, provs = self.manifest(), self.store(), self._providers(providers)
+        self._check_external(manifest)
         fps = compute_fingerprints(manifest, self.config, self.dir, store.pins())
         scope = manifest.scope(targets)
         order = [nid for nid in manifest.topo_order() if nid in scope]
@@ -80,6 +112,9 @@ class Project:
                 report.cached.append(nid)
                 continue
             route = self.config.route(node)
+            if self.config.external_route(node) is not None:
+                report.to_run.append(PlannedNode(nid, route.provider, route.model, 0.0, False, external=True))
+                continue
             provider = provs.get(route.provider)
             cost = provider.cost(node.type, cost_params(node, resolve_inputs(manifest, self.dir, node))) if provider else 0.0
             report.to_run.append(PlannedNode(nid, route.provider, route.model, cost, provider is not None))
@@ -88,6 +123,38 @@ class Project:
     def status(self) -> list[tuple[str, NodeState]]:
         store = self.store()
         return [(nid, store.nodes.get(nid, NodeState())) for nid in self.manifest().topo_order()]
+
+    def external_nodes(self) -> list[dict[str, Any]]:
+        """Nodes waiting for `adengine supply`, with everything needed to render them outside
+        the engine. `external_inputs` swaps each @ref for the referenced node's provider-side
+        ref (stored at supply), which is what an external provider can actually read."""
+        manifest, store = self.manifest(), self.store()
+        fps = compute_fingerprints(manifest, self.config, self.dir, store.pins())
+
+        def external_ref(ref_id: str) -> str | None:
+            ext = store.nodes[ref_id].external if ref_id in store.nodes else None
+            return ext.get("ref") if ext else None
+
+        out: list[dict[str, Any]] = []
+        for nid in manifest.topo_order():
+            st = store.nodes.get(nid)
+            if st is None or st.status != "awaiting_external":
+                continue
+            if st.expected_fingerprint != fps[nid]:
+                raise ValueError(f"{nid} changed since the last run; run adengine run first")
+            node = manifest.nodes[nid]
+            route = self.config.route(node)
+            out.append({
+                "id": nid,
+                "type": node.type,
+                "provider": route.provider,
+                "model": route.model,
+                "prompt": node.prompt,
+                "inputs": resolve_inputs(manifest, self.dir, node),
+                "external_inputs": resolve_refs(node.inputs, external_ref),
+                "fingerprint": st.expected_fingerprint,
+            })
+        return out
 
     def revise(self, node_id: str, changes: dict[str, Any]) -> None:
         unknown = set(changes) - REVISABLE
