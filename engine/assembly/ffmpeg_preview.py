@@ -34,7 +34,7 @@ def ass_time(seconds: float) -> str:
 
 
 def ass_text(text: str) -> str:
-    return text.replace("{", "\\{").replace("}", "\\}").replace("\n", "\\N")
+    return text.replace("\\", "＼").replace("{", "\\{").replace("}", "\\}").replace("\n", "\\N")
 
 
 def captions_ass(captions: list[dict[str, Any]], width: int, height: int, font: str) -> str:
@@ -66,7 +66,8 @@ def build_concat_filter(lengths: list[float], transitions: list[tuple[str, float
         kind, seconds = transitions[k]
         label = f"[v{k}]"
         if kind == "crossfade":
-            parts.append(f"{acc}[s{k}]xfade=transition=fade:duration={seconds:.3f}:offset={acc_len - seconds:.3f}{label}")
+            fade = min(seconds, lengths[k], acc_len)
+            parts.append(f"{acc}[s{k}]xfade=transition=fade:duration={fade:.3f}:offset={acc_len - seconds:.3f}{label}")
             acc_len += lengths[k] - seconds
         else:
             parts.append(f"{acc}[s{k}]concat=n=2:v=1:a=0{label}")
@@ -77,7 +78,7 @@ def build_concat_filter(lengths: list[float], transitions: list[tuple[str, float
 
 async def render_slate_image(ff: FFmpeg, work_dir: Path, name: str, width: int, height: int, text: str) -> Path:
     label = f"{Path(name).stem}.txt"
-    (work_dir / label).write_text(text)
+    (work_dir / label).write_text(text, encoding="utf-8")
     await ff.run([
         "-f", "lavfi", "-i", f"color=c={SLATE_COLOR}:s={width}x{height}", "-frames:v", "1",
         "-vf", drawtext(ff.font_option(), label, height // 24), name,
@@ -111,7 +112,7 @@ async def _end_card(ff: FFmpeg, card: dict, project_dir: Path, work_dir: Path, w
         source = ["-f", "lavfi", "-i", f"color=c={END_CARD_COLOR}:s={width}x{height}"]
         filters = ["setsar=1"]
     if card["text"]:
-        (work_dir / "end_card.txt").write_text(card["text"])
+        (work_dir / "end_card.txt").write_text(card["text"], encoding="utf-8")
         filters.append(drawtext(ff.font_option(), "end_card.txt", height // 14))
     filters.append(f"fps={fps}")
     await ff.run([*source, "-vf", ",".join(filters), "-t", f"{card['duration']:.3f}", "-r", str(fps),
@@ -138,9 +139,9 @@ async def _mix_audio(ff: FFmpeg, tracks: dict, project_dir: Path, work_dir: Path
         filters.append(f"[{i}:a]{AUDIO_FORMAT},adelay={ms}|{ms}[vo{k}]")
         vo_labels.append(f"[vo{k}]")
     if len(vo_labels) > 1:
-        filters.append(f"{''.join(vo_labels)}amix=inputs={len(vo_labels)}:normalize=0[vo]")
+        filters.append(f"{''.join(vo_labels)}amix=inputs={len(vo_labels)}:normalize=0,apad=whole_dur={total:.3f}[vo]")
     elif vo_labels:
-        filters.append(f"{vo_labels[0]}anull[vo]")
+        filters.append(f"{vo_labels[0]}anull,apad=whole_dur={total:.3f}[vo]")
 
     buses: list[str] = []
     music = tracks["music"]
@@ -198,7 +199,7 @@ async def render_preview(timeline: dict[str, Any], project_dir: Path, work_dir: 
 
     final = ["-i", "video.mp4", "-i", "mix.wav"]
     if tracks["captions"]:
-        (work_dir / "captions.ass").write_text(captions_ass(tracks["captions"], width, height, ff.font))
+        (work_dir / "captions.ass").write_text(captions_ass(tracks["captions"], width, height, ff.font), encoding="utf-8")
         final += ["-vf", "subtitles=captions.ass"]
     final += ["-t", f"{total:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
               "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "preview.mp4"]

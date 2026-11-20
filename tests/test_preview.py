@@ -23,6 +23,7 @@ def test_ass_helpers():
     assert ass_time(3725.456) == "1:02:05.46"
     assert ass_time(0.2) == "0:00:00.20"
     assert ass_text("a {b}\nc") == "a \\{b\\}\\Nc"
+    assert ass_text("a\\b") == "a＼b"
     doc = captions_ass([{"start": 0.2, "end": 1.325, "text": "Fresh coffee every"}], 1080, 1920, "DejaVu Sans")
     assert "PlayResX: 1080" in doc and "PlayResY: 1920" in doc
     assert "Style: Default,DejaVu Sans,87," in doc
@@ -109,3 +110,44 @@ def test_placeholder_only_preview_without_audio(ffmpeg, tmp_path):
     assert [e["kind"] for e in timeline["tracks"]["video"]] == ["image", "slate"]
     assert info.has_audio and (info.width, info.height) == (1080, 1080)
     assert info.duration == pytest.approx(2.0, abs=0.15)
+
+
+async def _mean_volume(ff, path, start, length):
+    proc = await asyncio.create_subprocess_exec(
+        ff.ffmpeg, "-hide_banner", "-nostdin", "-ss", str(start), "-t", str(length), "-i", str(path),
+        "-af", "volumedetect", "-f", "null", "-", stderr=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE)
+    _, err = await proc.communicate()
+    for line in err.decode().splitlines():
+        if "mean_volume:" in line:
+            return float(line.split("mean_volume:")[1].split("dB")[0])
+    raise AssertionError(err.decode()[-500:])
+
+
+def test_ducked_music_stays_audible_after_vo_ends(ffmpeg, tmp_path):
+    async def scenario():
+        project = tmp_path / "proj"
+        files = {
+            "c1": await _make(ffmpeg, project, "v1/shots/s01/clip.mp4", _clip(4.0)),
+            "vo": await _make(ffmpeg, project, "v1/vo/l01.wav", _tone(1.0, 220)),
+            "bed": await _make(ffmpeg, project, "shared/music/bed.wav", _tone(1.0, 110)),
+        }
+        sources = {files["c1"]: "v1.s01.clip", files["vo"]: "v1.vo.l01", files["bed"]: "shared.music.bed"}
+        inputs = {"aspect": "1:1", "captions": False,
+                  "shots": [{"clip": files["c1"], "duration": 4.0}],
+                  "vo": [{"audio": files["vo"], "text": "Hi"}],
+                  "music": {"audio": files["bed"], "volume": 0.5}}
+        timeline = build_timeline("v1.timeline", inputs, sources=sources, project_dir=project,
+                                  media=await _probe_all(ffmpeg, list(sources)))
+        work = tmp_path / "work"
+        work.mkdir()
+        out = await render_preview(timeline, project, work, ffmpeg)
+        return await _mean_volume(ffmpeg, out, 2.0, 1.4)
+
+    assert asyncio.run(scenario()) > -60
+
+
+def test_concat_filter_clamps_crossfade_to_short_shot():
+    graph, _ = build_concat_filter([1.25, 0.2, 1.0], [("cut", 0.0), ("crossfade", 0.25), ("cut", 0.0)], 30)
+    parts = graph.split(";")
+    assert "[s0][s1]xfade=transition=fade:duration=0.200:offset=1.000[v1]" in parts
+    assert "[v1][s2]concat=n=2:v=1:a=0[v2]" in parts

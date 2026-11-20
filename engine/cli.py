@@ -4,10 +4,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import shutil
 import sys
 from pathlib import Path
 
-from engine.config import ConfigError
+from engine.assembly.ffmpeg import REQUIRED_FILTERS, FFmpeg
+from engine.config import ConfigError, load_config
 from engine.core.graph import ManifestError, load_manifest
 from engine.core.project import Project
 from engine.core.scheduler import RunReport
@@ -149,6 +151,39 @@ def cmd_supply(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _doctor_checks(ff: FFmpeg) -> tuple[str | None, list[str]]:
+    try:
+        return await ff.version(), await ff.missing_filters()
+    except Exception:  # binary missing or broken: report every filter as missing
+        return None, list(REQUIRED_FILTERS)
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config).assembly
+    ff = FFmpeg(cfg)
+    ok = True
+    for label, binary in (("ffmpeg", cfg.ffmpeg), ("ffprobe", cfg.ffprobe)):
+        found = shutil.which(binary) is not None
+        ok &= found
+        print(f"{label}: {'found' if found else 'NOT FOUND'} ({binary})")
+    version, missing = asyncio.run(_doctor_checks(ff))
+    if version:
+        print(f"version: {version}")
+    for f in REQUIRED_FILTERS:
+        print(f"{'MISSING' if f in missing else 'OK':<7} {f}")
+    if missing:
+        ok = False
+        print("hint: on macOS install an ffmpeg build with libass and freetype (e.g. the homebrew-ffmpeg tap)")
+    print(f"font: {cfg.font}")
+    if cfg.font_file:
+        exists = Path(cfg.font_file).exists()
+        ok &= exists
+        print(f"font_file: {cfg.font_file} ({'exists' if exists else 'NOT FOUND'})")
+    else:
+        print("font_file: (none; fontconfig family name is used)")
+    return 0 if ok else 1
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="adengine", description="AdForge render engine")
     p.add_argument("--config", type=Path, default=None, help="config YAML (default: <project>/config.yaml)")
@@ -172,6 +207,9 @@ def _parser() -> argparse.ArgumentParser:
     rv.add_argument("node_id")
     rv.add_argument("--json", required=True, help='changes, e.g. \'{"prompt": "..."}\'')
     rv.add_argument("--no-run", action="store_true")
+    dr = sub.add_parser("doctor", help="check ffmpeg, required filters and fonts")
+    dr.add_argument("--config", type=Path, default=argparse.SUPPRESS, help="config YAML (default: built-in)")
+    dr.set_defaults(fn=cmd_doctor)
     rb = add("rollback", cmd_rollback, "restore an earlier version of a node")
     rb.add_argument("node_id")
     rb.add_argument("version", type=int)

@@ -28,6 +28,7 @@ class CallContext:
     work_dir: Path  # empty directory; write outputs here and return their paths
     project_dir: Path | None = None
     sources: dict[str, str] = field(default_factory=dict)  # assembly only: absolute input path → node id
+    unavailable: frozenset[str] = frozenset()  # assembly only: deps not "done" in this run (stale outputs ignored)
 
 
 class Provider:

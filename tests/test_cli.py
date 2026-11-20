@@ -53,7 +53,8 @@ def test_errors_exit_nonzero_with_message(project_dir, capsys):
 
 def test_example_config_loads():
     cfg = load_config(Path(__file__).resolve().parents[1] / "config.example.yaml")
-    assert cfg.routing["video"].provider == "mock"
+    assert cfg.routing["video"].provider == "mock_media"
+    assert cfg.routing["timeline"].provider == "assembly"
 
 
 def test_revise_json_must_be_an_object(project_dir, capsys):

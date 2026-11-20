@@ -45,7 +45,7 @@ class ProjectStore:
     rest from disk."""
 
     def __init__(self, project_dir: Path):
-        self.dir = Path(project_dir)
+        self.dir = Path(project_dir).resolve()
         self.state_path = self.dir / "state.json"
         self.lock_path = self.dir / ".state.lock"
         self.nodes: dict[str, NodeState] = self._read()

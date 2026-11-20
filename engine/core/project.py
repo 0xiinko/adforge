@@ -48,7 +48,7 @@ class DryRunReport:
 
 class Project:
     def __init__(self, project_dir: Path, config: EngineConfig | None = None):
-        self.dir = Path(project_dir)
+        self.dir = Path(project_dir).resolve()
         self.config = config or EngineConfig()
         self.manifest_path = self.dir / "manifest.json"
 
