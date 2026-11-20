@@ -108,3 +108,14 @@ def test_writer_and_planner_handle_supplied_scripts_and_shared_body():
                    "re-split it at a natural pause"):
         assert needle in planner, needle
     assert "or ask script-writer to shorten it." not in planner
+
+
+ANTI_SLOP_IMAGE = "Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark."
+ANTI_SLOP_VIDEO = "Stable face and hands, no morphing or warping."
+
+
+def test_prompt_craft_keeps_cast_consistent_and_fights_slop():
+    body = (ROOT / "skills" / "prompt-craft" / "SKILL.md").read_text()
+    for needle in (ANTI_SLOP_IMAGE, ANTI_SLOP_VIDEO, "look phrase", "voice phrase", "cast.md",
+                   "Reference: cast.", "body/prompts.md", "word for word"):
+        assert needle in body, needle

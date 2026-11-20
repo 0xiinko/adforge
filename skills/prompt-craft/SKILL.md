@@ -5,8 +5,8 @@ description: Stage 4 of /ad. Writes projects/<slug>/vN/prompts.md — an Ellora 
 
 # Prompt craft (stage 4)
 
-Input: `projects/<slug>/vN/shots.md`, `projects/<slug>/brand/ellora.md`.
-Output: `projects/<slug>/vN/prompts.md`.
+Input: `projects/<slug>/vN/shots.md` (and `body/shots.md`), `projects/<slug>/cast.md`, `projects/<slug>/brand/ellora.md`.
+Output: `projects/<slug>/vN/prompts.md`, plus `projects/<slug>/body/prompts.md` once for hooks + shared body.
 
 ## Models
 
@@ -18,6 +18,13 @@ If the user named other models, use those. Check every shot's duration and the 9
 
 Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", "dropper water") and reuse phrasing the team already uses. Apply every rule in the brand file's House rules section.
 
+## Cast consistency
+
+- Every keyframe with a cast member on screen: write `Reference: cast.<id>.ref` above the prompt (the manifest attaches that image), and put the person's **look phrase** from `cast.md` in the prompt, word for word. Never re-describe them in other words, and never change the outfit or hair unless `shots.md` says the story does.
+- Every clip prompt with a spoken line: use the speaker's **voice phrase** from `cast.md`, word for word, whether they are on camera ("she looks into the camera and says, lips in sync, in <voice phrase>: …") or off camera ("<voice phrase>, off camera, says: …").
+- Keep one look for the whole ad: the same light, lens and colour words in every keyframe of a setting.
+- A voice-only cast member (no reference node) is never shown on screen; their lines are always off camera, using their voice phrase.
+
 ## Keyframe (image) prompts
 
 - Start with "Photoreal vertical 9:16" and describe one frame: subject, setting, light, mood.
@@ -26,6 +33,7 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 - Packshots: the house look (seamless warm greige backdrop, soft key from the upper left, soft shadow to the right, no props, no hands, dead centre).
 - Never: text overlays, doctors or pharmacists, white coats, before/after bodies, named conditions.
 - One image per keyframe.
+- End every keyframe prompt with exactly: `Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.`
 
 ## Clip prompts (motion and audio)
 
@@ -36,6 +44,7 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
   - who speaks it: the on-camera person ("she looks into the camera and says, lips in sync: ...") or, when nobody is on screen, a voice ("a warm woman's voice, off camera, says: ..."); keep the same voice across the variant;
   - the delivery, in the brand's tone (plain, unembarrassed, a bit conspiratorial; never clinical or influencer);
   - "Natural ambient sound, no music."
+- Every clip prompt contains exactly: `Stable face and hands, no morphing or warping.` Keep motion small and continuous; never ask for hands to do fine work (opening caps, counting drops) in close-up.
 
 ## Write `projects/<slug>/vN/prompts.md`
 
@@ -46,12 +55,15 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 - Video model: kling-3.0/video
 - Aspect: 9:16
 
-## s01 (4 s)
-**Keyframe:** <image prompt>
-**Clip:** <motion> <who> says, <delivery>: "<spoken line>" Natural ambient sound, no music.
+## v1.s01 (4 s)
+**Reference:** cast.maya.ref  ← or "none"
+**Keyframe:** <image prompt with the look phrase> Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.
+**Clip:** <motion> she looks into the camera and says, lips in sync, in <voice phrase>: "<spoken line>" Stable face and hands, no morphing or warping. Natural ambient sound, no music.
 
-## s02 (5 s)
+## v1.s02 (5 s)
 ...
 ```
+
+For hooks + shared body, body shots go in body/prompts.md (written once) with the same layout.
 
 See `skills/ad-runner/example-manifest.json` for five complete, approved-style examples.
