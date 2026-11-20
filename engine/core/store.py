@@ -1,11 +1,15 @@
 """Per-project run state (state.json), versioned outputs, rollback."""
 from __future__ import annotations
 
+import fcntl
 import json
+import os
 import shutil
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
+from dataclasses import fields as dataclass_fields
 from pathlib import Path
-from typing import Iterable
+from typing import Iterator, Iterable
 
 from engine.core.cache import pinned_fingerprint
 from engine.core.graph import Manifest, Node
@@ -35,22 +39,80 @@ def _remove(path: Path) -> None:
 
 
 class ProjectStore:
+    """state.json may be written by several processes at once (parallel `adengine supply`,
+    a supply during a run). Every save merges: under an exclusive lock it re-reads the file,
+    writes back only the nodes this store changed since its last save, and refreshes the
+    rest from disk."""
+
     def __init__(self, project_dir: Path):
         self.dir = Path(project_dir)
         self.state_path = self.dir / "state.json"
-        self.nodes: dict[str, NodeState] = {}
-        if self.state_path.exists():
-            data = json.loads(self.state_path.read_text())
-            self.nodes = {k: NodeState(**v) for k, v in data.get("nodes", {}).items()}
+        self.lock_path = self.dir / ".state.lock"
+        self.nodes: dict[str, NodeState] = self._read()
+        self._dirty: set[str] = set()
+        self._lock_depth = 0
+        self._lock_fd: int | None = None
+
+    def _read(self) -> dict[str, NodeState]:
+        if not self.state_path.exists():
+            return {}
+        data = json.loads(self.state_path.read_text())
+        return {k: NodeState(**v) for k, v in data.get("nodes", {}).items()}
+
+    def _refresh(self) -> None:
+        """Take every node this store has not changed from disk, in place, so
+        NodeState objects already handed out stay current."""
+        for k, disk in self._read().items():
+            if k in self._dirty:
+                continue
+            mine = self.nodes.get(k)
+            if mine is None:
+                self.nodes[k] = disk
+            else:
+                for f in dataclass_fields(NodeState):
+                    setattr(mine, f.name, getattr(disk, f.name))
+
+    @contextmanager
+    def lock(self) -> Iterator[None]:
+        """Exclusive lock on the project's state across processes. Re-entrant within this
+        store. Taking it refreshes untouched nodes, so checks made inside see current state."""
+        if self._lock_depth == 0:
+            self.dir.mkdir(parents=True, exist_ok=True)
+            fd = os.open(self.lock_path, os.O_RDWR | os.O_CREAT, 0o644)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX)
+            except BaseException:
+                os.close(fd)
+                raise
+            self._lock_fd = fd
+        self._lock_depth += 1
+        try:
+            if self._lock_depth == 1:
+                self._refresh()
+            yield
+        finally:
+            self._lock_depth -= 1
+            if self._lock_depth == 0 and self._lock_fd is not None:
+                fd, self._lock_fd = self._lock_fd, None
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
 
     def save(self) -> None:
-        write_json_atomic(self.state_path, {"nodes": {k: asdict(v) for k, v in self.nodes.items()}})
+        with self.lock():
+            nodes = {k: asdict(v) for k, v in self.nodes.items()}
+            write_json_atomic(self.state_path, {"nodes": nodes})
+            self._dirty.clear()
 
     def get(self, node_id: str) -> NodeState:
         return self.nodes.setdefault(node_id, NodeState())
 
+    def _touch(self, node_id: str) -> NodeState:
+        """The node's state, marked as changed by this store (written on the next save)."""
+        self._dirty.add(node_id)
+        return self.get(node_id)
+
     def update(self, node_id: str, **fields) -> None:
-        st = self.get(node_id)
+        st = self._touch(node_id)
         for key, value in fields.items():
             setattr(st, key, value)
         self.save()
@@ -95,32 +157,33 @@ class ProjectStore:
         produced = Path(produced)
         if not produced.exists():
             raise FileNotFoundError(f"{node.id}: provider output {produced} does not exist")
-        out = self.output(node)
-        st = self.get(node.id)
-        archived = self.versions(node)
-        top = max([st.version, *archived])
-        if out.exists():
-            n = max(st.version, max(archived, default=0) + 1)
-            target = version_path(out, node.id, n)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(out), str(target))
-            top = n
-        out.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(produced), str(out))
-        st.version = top + 1
-        st.status = "done"
-        st.built_from = {d: self._version(d) for d in node.depends_on}
-        if pin:
-            st.fingerprint = pinned_fingerprint(node.id, st.version)
-            st.pinned_version = st.version
-        else:
-            st.fingerprint = fingerprint
-        st.reason = None
-        st.expected_fingerprint = None
-        st.external = None  # supply() sets it again for supplied files
-        st.message = None
-        self.save()
-        return st.version
+        with self.lock():  # current versions of this node and its dependencies
+            out = self.output(node)
+            st = self._touch(node.id)
+            archived = self.versions(node)
+            top = max([st.version, *archived])
+            if out.exists():
+                n = max(st.version, max(archived, default=0) + 1)
+                target = version_path(out, node.id, n)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(out), str(target))
+                top = n
+            out.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(produced), str(out))
+            st.version = top + 1
+            st.status = "done"
+            st.built_from = {d: self._version(d) for d in node.depends_on}
+            if pin:
+                st.fingerprint = pinned_fingerprint(node.id, st.version)
+                st.pinned_version = st.version
+            else:
+                st.fingerprint = fingerprint
+            st.reason = None
+            st.expected_fingerprint = None
+            st.external = None  # supply() sets it again for supplied files
+            st.message = None
+            self.save()
+            return st.version
 
     def versions(self, node: Node) -> list[int]:
         out = self.output(node)
@@ -153,7 +216,7 @@ class ProjectStore:
         else:
             shutil.copy2(src, staged)
         new_version = self.commit(node, staged, pin=True)
-        st = self.get(node.id)
+        st = self._touch(node.id)
         ext = (st.external_history or {}).get(str(version))
         if ext is not None:  # a supplied file: later external nodes need its provider-side ref
             st.external = ext

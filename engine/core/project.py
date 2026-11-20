@@ -163,10 +163,10 @@ class Project:
             })
         return out
 
-    def _awaiting(self, node_id: str) -> tuple[Node, Route, str, ProjectStore]:
-        """The awaiting external node, its route, its current fingerprint and the store.
-        Raises if the node cannot be supplied right now."""
-        manifest, store = self.manifest(), self.store()
+    def _awaiting(self, node_id: str, store: ProjectStore) -> tuple[Node, Route, str]:
+        """The awaiting external node, its route and its current fingerprint.
+        Raises if the node cannot be supplied right now. Call with store.lock() held."""
+        manifest = self.manifest()
         if node_id not in manifest.nodes:
             raise KeyError(f"unknown node {node_id}")
         node = manifest.nodes[node_id]
@@ -179,48 +179,53 @@ class Project:
         current = compute_fingerprints(manifest, self.config, self.dir, store.pins())[node_id]
         if st.expected_fingerprint != current:
             raise ValueError(f"{node_id} changed since it was listed; run adengine run, then adengine external again")
-        return node, route, current, store
+        return node, route, current
 
     def supply(
         self, node_id: str, file: Path | str, *, ref: str,
         external_id: str | None = None, fingerprint: str | None = None,
     ) -> int:
-        """Commit a file rendered outside the engine as the node's new version."""
-        node, route, current, store = self._awaiting(node_id)
-        if fingerprint is not None and fingerprint != current:
-            raise ValueError(f"{node_id}: --fingerprint does not match the current fingerprint; list again with adengine external")
-        src = Path(file)
-        if not src.is_file():
-            raise FileNotFoundError(f"{src} does not exist")
-        allowed = SUPPLY_SUFFIXES[node.type]
-        if src.suffix.lower() not in allowed:
-            raise ValueError(f"{node_id}: {node.type} needs one of {sorted(allowed)}, got {src.name}")
-        staged = store.work_dir(node_id) / f"supplied{EXTENSIONS[node.type]}"
-        if node.type == "image" and src.suffix.lower() != ".png":
-            asyncio.run(FFmpeg(self.config.assembly).run(["-i", str(src), "-frames:v", "1", str(staged)]))
-        else:
-            shutil.copy2(src, staged)
-        version = store.commit(node, staged, current)
-        ext = {"provider": route.provider, "ref": ref, "id": external_id}
-        history = dict(store.get(node_id).external_history or {})
-        history[str(version)] = ext
-        store.update(node_id, external=ext, external_history=history)
-        self.ledger().record(
-            node_id=node_id, provider=route.provider, model=route.model, cost_usd=0.0,
-            seconds=0.0, attempt=1, ok=True, external_id=external_id,
-        )
-        return version
+        """Commit a file rendered outside the engine as the node's new version. Holds the
+        state lock throughout, so parallel supplies of one node cannot both pass the check."""
+        store = self.store()
+        with store.lock():
+            node, route, current = self._awaiting(node_id, store)
+            if fingerprint is not None and fingerprint != current:
+                raise ValueError(f"{node_id}: --fingerprint does not match the current fingerprint; list again with adengine external")
+            src = Path(file)
+            if not src.is_file():
+                raise FileNotFoundError(f"{src} does not exist")
+            allowed = SUPPLY_SUFFIXES[node.type]
+            if src.suffix.lower() not in allowed:
+                raise ValueError(f"{node_id}: {node.type} needs one of {sorted(allowed)}, got {src.name}")
+            staged = store.work_dir(node_id) / f"supplied{EXTENSIONS[node.type]}"
+            if node.type == "image" and src.suffix.lower() != ".png":
+                asyncio.run(FFmpeg(self.config.assembly).run(["-i", str(src), "-frames:v", "1", str(staged)]))
+            else:
+                shutil.copy2(src, staged)
+            version = store.commit(node, staged, current)
+            ext = {"provider": route.provider, "ref": ref, "id": external_id}
+            history = dict(store.get(node_id).external_history or {})
+            history[str(version)] = ext
+            store.update(node_id, external=ext, external_history=history)
+            self.ledger().record(
+                node_id=node_id, provider=route.provider, model=route.model, cost_usd=0.0,
+                seconds=0.0, attempt=1, ok=True, external_id=external_id,
+            )
+            return version
 
     def supply_failure(self, node_id: str, *, refused: bool, message: str) -> None:
         """Record that the external render failed or was refused. The node keeps its
         expected fingerprint, so runs hold it (and block dependents) until it is revised."""
-        node, route, _, store = self._awaiting(node_id)
-        status, reason = ("needs_review", "refused") if refused else ("failed", "external")
-        store.update(node_id, status=status, reason=reason, message=message)
-        self.ledger().record(
-            node_id=node_id, provider=route.provider, model=route.model, cost_usd=0.0,
-            seconds=0.0, attempt=1, ok=False, external_id=None,
-        )
+        store = self.store()
+        with store.lock():
+            node, route, _ = self._awaiting(node_id, store)
+            status, reason = ("needs_review", "refused") if refused else ("failed", "external")
+            store.update(node_id, status=status, reason=reason, message=message)
+            self.ledger().record(
+                node_id=node_id, provider=route.provider, model=route.model, cost_usd=0.0,
+                seconds=0.0, attempt=1, ok=False, external_id=None,
+            )
 
     def revise(self, node_id: str, changes: dict[str, Any]) -> None:
         unknown = set(changes) - REVISABLE
