@@ -172,3 +172,24 @@ def test_media_paths_lists_every_referenced_file():
     assert media_paths(inputs(end_card={"text": "x", "image": END})) == [
         CLIP1, KF1, CLIP2, KF2, L01, L02, WHOOSH, BED, END,
     ]
+
+
+def test_vo_text_none_becomes_empty_string():
+    t = build(vo=[{"audio": L01, "text": None}])
+    assert t["tracks"]["vo"][0]["text"] == ""
+    assert t["tracks"]["captions"] == []
+
+
+@pytest.mark.parametrize("value", ["false", 0, 1, "yes"])
+def test_captions_must_be_a_bool(value):
+    with pytest.raises(TimelineError, match="inputs.captions must be true or false"):
+        build(captions=value)
+
+
+def test_warns_when_clip_and_fallback_are_both_missing():
+    t = build(media={KF1: 0.0, L01: 2.0, L02: 1.0, WHOOSH: 0.5, BED: 10.0})
+    assert t["warnings"] == ["v1.s02.clip and its fallback v1.s02.keyframe are both missing"]
+
+
+def test_captions_null_means_default_on():
+    assert build(captions=None)["tracks"]["captions"] != []

@@ -158,13 +158,17 @@ def build_timeline(
             fallback = shot.get("fallback")
             if isinstance(fallback, str) and fallback in media:
                 entry.update(node=ident(fallback), path=rel(fallback), kind="image")
+            elif isinstance(fallback, str):
+                warnings.append(f"{ident(clip)} and its fallback {ident(fallback)} are both missing")
         video.append(entry)
         t += duration
     video_end = t
 
     vo: list[dict] = []
     captions: list[dict] = []
-    want_captions = bool(inputs.get("captions", True))
+    want_captions = True if inputs.get("captions") is None else inputs["captions"]
+    if not isinstance(want_captions, bool):
+        raise err("inputs.captions must be true or false")
     cursor = VO_LEAD_IN_S
     vo_items = [] if inputs.get("vo") is None else inputs["vo"]
     if not isinstance(vo_items, list):
@@ -172,7 +176,7 @@ def build_timeline(
     for i, line in enumerate(vo_items):
         where = f"inputs.vo[{i}]"
         audio = ref(line, "audio", where)
-        text = str(line.get("text", ""))
+        text = "" if line.get("text") is None else str(line["text"])
         start = cursor if line.get("start") is None else number(line["start"], f"{where}.start", positive=False)
         if audio in media:
             duration, path = media[audio], rel(audio)
