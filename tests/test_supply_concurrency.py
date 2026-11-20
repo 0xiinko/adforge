@@ -61,3 +61,14 @@ def test_two_supplies_of_the_same_node_one_wins(ellora_dir):
     assert out.strip() == f"supplied {HERO} as v1"
     winner = next(i for i, r in enumerate(results) if r[0] == 0)
     assert st.external["ref"] == f"ellora://hero{winner}"
+
+
+def test_update_from_a_stale_store_keeps_another_process_commit(ellora_dir):
+    run(ellora_dir)
+    stale = ProjectStore(ellora_dir)  # loaded before the supply below
+    Project(ellora_dir, ELLORA).supply(HERO, png(ellora_dir, "hero.png"), ref="ellora://hero")
+    stale.update(HERO, status="pending")
+    st = ProjectStore(ellora_dir).get(HERO)
+    assert (st.status, st.version) == ("pending", 1)
+    assert st.fingerprint is not None and st.external["ref"] == "ellora://hero"
+    assert st.external_history == {"1": st.external}

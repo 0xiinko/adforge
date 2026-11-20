@@ -107,15 +107,17 @@ class ProjectStore:
         return self.nodes.setdefault(node_id, NodeState())
 
     def _touch(self, node_id: str) -> NodeState:
-        """The node's state, marked as changed by this store (written on the next save)."""
+        """The node's state, marked as changed by this store (written on the next save).
+        Call with lock() held, so the node was refreshed from disk before it is marked."""
         self._dirty.add(node_id)
         return self.get(node_id)
 
     def update(self, node_id: str, **fields) -> None:
-        st = self._touch(node_id)
-        for key, value in fields.items():
-            setattr(st, key, value)
-        self.save()
+        with self.lock():  # refresh first, then mark dirty: only these fields override disk
+            st = self._touch(node_id)
+            for key, value in fields.items():
+                setattr(st, key, value)
+            self.save()
 
     def output(self, node: Node) -> Path:
         return output_path(self.dir, node.id, node.type)
@@ -231,8 +233,9 @@ class ProjectStore:
         return {k: v.pinned_version for k, v in self.nodes.items() if v.pinned_version is not None}
 
     def unpin(self, node_id: str) -> None:
-        if node_id in self.nodes and self.nodes[node_id].pinned_version is not None:
-            self.update(node_id, pinned_version=None)
+        with self.lock():  # decide on the current pin, not the one this store loaded
+            if node_id in self.nodes and self.nodes[node_id].pinned_version is not None:
+                self.update(node_id, pinned_version=None)
 
     def work_dir(self, node_id: str) -> Path:
         d = self.dir / ".tmp" / node_id
