@@ -138,9 +138,14 @@ class Project:
         manifest, store = self.manifest(), self.store()
         fps = compute_fingerprints(manifest, self.config, self.dir, store.pins())
 
-        def external_ref(ref_id: str) -> str | None:
+        def external_ref(nid: str, ref_id: str) -> str:
             ext = store.nodes[ref_id].external if ref_id in store.nodes else None
-            return ext.get("ref") if ext else None
+            ref = ext.get("ref") if ext else None
+            if ref is None:
+                raise ValueError(
+                    f"{nid}: input @{ref_id} has no external ref; supply {ref_id} again (revise it or run adengine run)"
+                )
+            return ref
 
         out: list[dict[str, Any]] = []
         for nid in manifest.topo_order():
@@ -158,7 +163,7 @@ class Project:
                 "model": route.model,
                 "prompt": node.prompt,
                 "inputs": resolve_inputs(manifest, self.dir, node),
-                "external_inputs": resolve_refs(node.inputs, external_ref),
+                "external_inputs": resolve_refs(node.inputs, lambda ref_id: external_ref(nid, ref_id)),
                 "fingerprint": st.expected_fingerprint,
             })
         return out

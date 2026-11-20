@@ -109,3 +109,23 @@ def test_external_nodes_rejects_a_node_changed_since_the_run(ellora_dir):
     write_manifest(ellora_dir, data)
     with pytest.raises(ValueError, match="refs.product_hero changed since the last run"):
         p.external_nodes()
+
+
+def test_external_nodes_rejects_an_input_without_an_external_ref(ellora_dir):
+    hero = "refs.product_hero"
+    local = Project(ellora_dir, EngineConfig.from_dict({"retry": {"base_delay_s": 0}}))
+    asyncio.run(local.run([hero], providers={"mock": RecordingProvider()}))
+    data = json.loads((ellora_dir / "manifest.json").read_text())
+    node(data, hero)["prompt"] = "second take"
+    write_manifest(ellora_dir, data)
+    asyncio.run(local.run([hero], providers={"mock": RecordingProvider()}))
+    local.rollback(hero, 1)  # pinned, rendered locally: no external ref to hand on
+    p = project(ellora_dir)
+    assert p.external_errors() == []
+    assert "v1.s01.keyframe" in run(p).awaiting
+    with pytest.raises(ValueError) as e:
+        p.external_nodes()
+    assert str(e.value) == (
+        "v1.s01.keyframe: input @refs.product_hero has no external ref; "
+        "supply refs.product_hero again (revise it or run adengine run)"
+    )
