@@ -157,6 +157,23 @@ def test_example_timeline_inputs_build(ad_dir, variant):
     assert timeline["warnings"] == [] and timeline["placeholders"] == []
 
 
+def test_cast_preview_renders_only_the_cast(ad_dir, capsys):
+    assert main(["run", str(ad_dir), "--only", "cast.*"]) == 3
+    capsys.readouterr()
+    assert main(["external", str(ad_dir), "--json"]) == 0
+    items = json.loads(capsys.readouterr().out)
+    assert [i["id"] for i in items] == [CAST]
+    f = ad_dir / "maya.png"
+    f.write_bytes(PNG_1X1)
+    assert main(["supply", str(ad_dir), CAST, str(f), "--ref", f"ellora://{CAST}",
+                 "--fingerprint", items[0]["fingerprint"]]) == 0
+    assert main(["run", str(ad_dir), "--only", "cast.*"]) == 0
+    assert main(["run", str(ad_dir)]) == 3
+    capsys.readouterr()
+    assert main(["external", str(ad_dir), "--json"]) == 0
+    assert CAST not in [i["id"] for i in json.loads(capsys.readouterr().out)]
+
+
 def test_example_runs_through_the_ellora_loop(ad_dir, capsys, ffmpeg):
     """Plays Claude's part: 'renders' each awaiting node (tiny real media), supplies it, re-runs."""
     passes = 0
