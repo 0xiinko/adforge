@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-20
 **Status:** Approved in brainstorming, pending written-spec review
-**Branch:** `feat/ellora` (cut from `feat/assembly` at f3f8052)
+**Branch:** `feat/ellora` (cut from `feat/assembly` at ce0c037)
 **Extends:** `2026-11-20-adforge-design.md` (§5 Brain flow, §6 Engine)
 
 ## 1. Goal
