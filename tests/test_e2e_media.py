@@ -53,3 +53,13 @@ def test_capcut_draft_exported_to_drafts_dir_with_rewritten_paths(media_project,
     exported = tmp_path / "drafts" / "mug-launch_v1" / "draft_content.json"
     draft = json.loads(exported.read_text())
     assert draft["materials"]["videos"][0]["path"] == "C:/AdForge/projects/mug-launch/v1/shots/s01/clip.mp4"
+
+
+def test_relative_project_path_renders_with_absolute_draft_paths(media_project, monkeypatch):
+    monkeypatch.chdir(media_project.parent)
+    assert main(["run", media_project.name]) == 0
+    assert (media_project / "v1/preview.mp4").exists()
+    draft = json.loads((media_project / "v1/capcut_draft/draft_content.json").read_text())
+    assert Path(draft["materials"]["videos"][0]["path"]).is_absolute()
+    meta = json.loads((media_project / "v1/capcut_draft/draft_meta_info.json").read_text())
+    assert meta["draft_name"] == "mug-launch_v1"

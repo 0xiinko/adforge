@@ -33,7 +33,7 @@ def _remove(path: Path) -> None:
 
 class ProjectStore:
     def __init__(self, project_dir: Path):
-        self.dir = Path(project_dir)
+        self.dir = Path(project_dir).resolve()
         self.state_path = self.dir / "state.json"
         self.nodes: dict[str, NodeState] = {}
         if self.state_path.exists():
