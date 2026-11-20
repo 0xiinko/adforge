@@ -198,7 +198,7 @@ AI images and videos drift: render the same description twice and you get two di
 
 - **id**: lowercase first name, e.g. `maya`. Node: `cast.<id>.ref`.
 - **Look phrase**: one sentence that pins the visual identity — name, age, hair (length, colour, texture, how it's worn), skin tone, one or two distinctive details (earrings, glasses), and one outfit worn in every shot. Example: `Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater)`.
-- **Voice phrase**: one phrase for every line they speak, on or off camera — pitch, age, accent, pace, attitude. Example: `Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing`.
+- **Voice phrase**: one phrase for every line they speak, on or off camera — pitch, age, accent, pace, attitude. Example: `a warm, low, unhurried American woman's voice, a little dry and knowing` (one noun phrase, no name prefix).
 - **Reference prompt**: the image Ellora renders as `cast.<id>.ref` — "Photoreal vertical 9:16 waist-up portrait of" + the look phrase (without the "in the reference image" words) + "looking straight into the camera, neutral relaxed expression, plain soft-grey backdrop, soft even window light from the left." + the anti-slop ending from prompt-craft.
 
 The look phrase and the voice phrase are copied **word for word** into every keyframe and clip prompt that person appears in. Never paraphrase them later; a changed word is a changed person.
@@ -493,7 +493,7 @@ CAST = "cast.maya.ref"
 NO_CAST = {"body.s03"}  # the packshot: no person on screen, Maya speaks off camera
 LOOK = ("Maya (the woman in the reference image: mid-thirties, warm brown skin, shoulder-length dark "
         "curly hair pulled half up, small gold hoop earrings, oversized cream knit sweater)")
-VOICE = "Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing"
+VOICE = "a warm, low, unhurried American woman's voice, a little dry and knowing"
 ANTI_SLOP_IMAGE = "Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark."
 ANTI_SLOP_VIDEO = "Stable face and hands, no morphing or warping."
 
@@ -698,7 +698,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "v1.s01.clip",
       "type": "video",
-      "prompt": "Slow push-in. Maya unfolds her arms and nods toward the pile of tubs, then back to the camera. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"Stop buying random cleanses that only do half the job.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Slow push-in. Maya unfolds her arms and nods toward the pile of tubs, then back to the camera. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"Stop buying random cleanses that only do half the job.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s01.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["v1.s01.keyframe"]
     },
@@ -712,7 +712,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "v1.s02.clip",
       "type": "video",
-      "prompt": "Static camera, very slight drift. Maya holds the raised eyebrow, then gives a small shrug. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"That's a broom with no dustpan.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Static camera, very slight drift. Maya holds the raised eyebrow, then gives a small shrug. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"That's a broom with no dustpan.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v1.s02.keyframe", "duration": 4, "aspect": "9:16"},
       "depends_on": ["v1.s02.keyframe"]
     },
@@ -726,7 +726,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "v2.s01.clip",
       "type": "video",
-      "prompt": "Slow push-in. Maya rests her hand flat on the receipts and tilts her head. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"How much have you spent trying to feel normal again?\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Slow push-in. Maya rests her hand flat on the receipts and tilts her head. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"How much have you spent trying to feel normal again?\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v2.s01.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["v2.s01.keyframe"]
     },
@@ -740,7 +740,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "v2.s02.clip",
       "type": "video",
-      "prompt": "Static camera. Maya holds eye contact and gives one small nod. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"Nobody told you what was missing.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Static camera. Maya holds eye contact and gives one small nod. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"Nobody told you what was missing.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@v2.s02.keyframe", "duration": 4, "aspect": "9:16"},
       "depends_on": ["v2.s02.keyframe"]
     },
@@ -754,7 +754,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "body.s01.clip",
       "type": "video",
-      "prompt": "Static camera, slight push-in. Maya keeps the bottle still beside her face, the label sharp and readable. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"It has to be a liquid. Not a capsule.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Static camera, slight push-in. Maya keeps the bottle still beside her face, the label sharp and readable. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"It has to be a liquid. Not a capsule.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@body.s01.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["body.s01.keyframe"]
     },
@@ -768,7 +768,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "body.s02.clip",
       "type": "video",
-      "prompt": "Static camera. Maya leans in a little, hands staying out of frame. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"And it needs a binder. This is the part nobody mentions.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Static camera. Maya leans in a little, hands staying out of frame. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"And it needs a binder. This is the part nobody mentions.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@body.s02.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["body.s02.keyframe"]
     },
@@ -782,7 +782,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "body.s03.clip",
       "type": "video",
-      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement. Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing, off camera, says: \"Ellora is both steps. Gut Cleanse first, then Zeolite Drops.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Very slow push-in on the two bottles. Both labels stay sharp and readable; light shifts gently across the amber glass. No other movement. Off camera, in a warm, low, unhurried American woman's voice, a little dry and knowing, she says: \"Ellora is both steps. Gut Cleanse first, then Zeolite Drops.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@body.s03.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["body.s03.keyframe"]
     },
@@ -796,7 +796,7 @@ Replace `skills/ad-runner/example-manifest.json` with:
     {
       "id": "body.s04.clip",
       "type": "video",
-      "prompt": "Slow push-in. Maya keeps the warm smile and points one finger down toward the bottom of the frame on the last words. She looks into the camera and says, lips in sync, in Maya's voice: a warm, low, unhurried American woman's voice, a little dry and knowing: \"Stop buying half a cleanse. Link below. Get the one with both steps.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
+      "prompt": "Slow push-in. Maya keeps the warm smile and points one finger down toward the bottom of the frame on the last words. She looks into the camera and says, lips in sync, in a warm, low, unhurried American woman's voice, a little dry and knowing: \"Stop buying half a cleanse. Link below. Get the one with both steps.\" Stable face and hands, no morphing or warping. Natural ambient sound, no music.",
       "inputs": {"first_frame": "@body.s04.keyframe", "duration": 5, "aspect": "9:16"},
       "depends_on": ["body.s04.keyframe"]
     },
