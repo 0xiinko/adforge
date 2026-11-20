@@ -85,11 +85,24 @@ class Scheduler:
 
         running: dict[asyncio.Task, str] = {}
 
+        def is_assembly(nid: str) -> bool:
+            return m.nodes[nid].type in ASSEMBLY_TYPES
+
+        def soft(nid: str, dep: str) -> bool:
+            """Spec §8: an assembly node tolerates unfinished media (placeholders), never an
+            unfinished assembly input such as its timeline."""
+            return is_assembly(nid) and not is_assembly(dep)
+
         def ready(nid: str) -> bool:
-            node = m.nodes[nid]
-            if node.type in ASSEMBLY_TYPES:  # spec §8: assemble with placeholders
-                return all(status[d] in FINISHED for d in node.depends_on)
-            return all(status[d] == "done" for d in node.depends_on)
+            return all(
+                status[d] in FINISHED if soft(nid, d) else status[d] == "done"
+                for d in m.nodes[nid].depends_on
+            )
+
+        def block(d: str, reason: str) -> None:
+            status[d] = "blocked"
+            self.store.update(d, status="blocked", reason=reason, message=None)
+            report.blocked.append(d)
 
         def launch_ready() -> None:
             for nid in order:
@@ -117,10 +130,19 @@ class Scheduler:
                 (report.failed if outcome == "failed" else report.needs_review).append(nid)
                 downstream = m.descendants([nid])
                 for d in order:
-                    if d in downstream and status[d] == "pending" and m.nodes[d].type not in ASSEMBLY_TYPES:
-                        status[d] = "blocked"
-                        self.store.update(d, status="blocked", reason=f"upstream {nid} {outcome}", message=None)
-                        report.blocked.append(d)
+                    if d in downstream and status[d] == "pending" and not is_assembly(d):
+                        block(d, f"upstream {nid} {outcome}")
+                changed = True
+                while changed:  # assembly nodes whose assembly input did not finish done
+                    changed = False
+                    for d in order:
+                        if status[d] != "pending" or not is_assembly(d):
+                            continue
+                        bad = next((x for x in m.nodes[d].depends_on if not soft(d, x)
+                                    and status[x] in FINISHED - {"done"}), None)
+                        if bad is not None:
+                            block(d, f"upstream {bad} {status[bad]}")
+                            changed = True
             launch_ready()
         return report
 
