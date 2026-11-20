@@ -101,7 +101,7 @@ adengine supply <project> <node_id> --refused "<message>"
 - **Checks:** the node exists, it is external, its status is `awaiting_external`, and its current fingerprint equals `expected_fingerprint` (and `--fingerprint` if given). If not, it stops with an error naming the mismatch, e.g. the node was revised after `external` listed it.
 - **File:** copied (not moved) into the node's work dir, then committed through `ProjectStore.commit` with the expected fingerprint, so versioning and rollback behave exactly as for an engine render. The extension must match the node type (`.png`/`.jpg`/`.webp` for image, `.mp4` for video). A `.jpg` or `.webp` image is converted to PNG with the configured ffmpeg before commit, so the output keeps the node's normal `.png` path.
 - **Metadata:** stores `external = {provider, ref, id}`, clears `expected_fingerprint`, and writes a ledger entry: `provider`, `model`, `cost_usd: 0.0`, `attempt: 1`, `ok: true`, plus `external_id`.
-- **`--failed` / `--refused`:** set the node to `failed` (reason `external`) or `needs_review` (reason `refused`) with the message, and write a ledger entry with `ok: false`. The node keeps its `expected_fingerprint`, and while its fingerprint is unchanged every `run` reports it as failed / needs_review (it is not listed as awaiting again) and blocks its dependents. A `revise` changes the fingerprint, so the next `run` puts it back to `awaiting_external`.
+- **`--failed` / `--refused`:** set the node to `failed` (reason `external`) or `needs_review` (reason `refused`) with the message, and write a ledger entry with `ok: false`. Failed retries, refused holds: a `--failed` node shows as failed in `adengine status` until the next `run`, which lists it as `awaiting_external` again (like engine renders, which retry on the next run). A `--refused` node keeps its `expected_fingerprint`, and while its fingerprint is unchanged every `run` reports it as needs_review (it is not listed as awaiting again) and blocks its dependents; a `revise` changes the fingerprint, so the next `run` puts it back to `awaiting_external`.
 - `supply` does not run anything. Claude calls `run` afterwards to continue the pipeline.
 
 ### 3.6 Validation
@@ -133,7 +133,7 @@ A refusal is rewritten once by Claude via `revise` (same rule as spec §8). A se
 
 | Case | Result |
 |---|---|
-| Ellora render fails or times out | Claude retries once, then `supply --failed`. Dependents become `blocked` on the next run. |
+| Ellora render fails or times out | Claude retries once, then `supply --failed`. The next run lists the node as awaiting again (failed retries). A refusal (`supply --refused`) instead holds the node as needs_review and blocks its dependents until it is revised. |
 | Ellora refuses the prompt | `supply --refused`, then the §4 rewrite rule. |
 | Node revised between `external` and `supply` | `supply` rejects the stale file. Claude lists again and re-renders. |
 | Claude never comes back | Nodes stay `awaiting_external`. Nothing is blocked or lost. The next `run` lists them again. |
@@ -143,7 +143,7 @@ A refusal is rewritten once by Claude via `revise` (same rule as spec §8). A se
 
 - Config: `external_providers` parsed; external routing on a non-image/video type is rejected; dry-run labels external nodes.
 - Scheduler: a stale external node becomes `awaiting_external` with `expected_fingerprint`; its dependents and assembly wait (not blocked, no placeholder); unrelated nodes finish; `RunReport.awaiting` is filled; a fresh external node is cached.
-- `supply`: commits, versions and archives the old output, stores `external`, writes the ledger entry, and a following `run` finishes the dependents; rejects a stale fingerprint, a node that isn't awaiting, a non-external node, and a wrong extension; `--failed` and `--refused` map to the right statuses and block dependents on the next run.
+- `supply`: commits, versions and archives the old output, stores `external`, writes the ledger entry, and a following `run` finishes the dependents; rejects a stale fingerprint, a node that isn't awaiting, a non-external node, and a wrong extension; `--failed` and `--refused` map to the right statuses; on the next run a failed node is awaiting again, while a refused one holds and blocks its dependents.
 - `external --json`: resolved inputs and `external_inputs` mapped from the stored `external.ref`.
 - Validation: an external node referencing a non-external node is an error.
 - CLI: exit code `3` when only awaiting; `1` wins over `3`.

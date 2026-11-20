@@ -217,8 +217,9 @@ class Project:
             return version
 
     def supply_failure(self, node_id: str, *, refused: bool, message: str) -> None:
-        """Record that the external render failed or was refused. The node keeps its
-        expected fingerprint, so runs hold it (and block dependents) until it is revised."""
+        """Record that the external render failed or was refused. A refused node keeps its
+        expected fingerprint, so runs hold it (and block dependents) until it is revised;
+        a failed one is listed as awaiting again by the next run."""
         store = self.store()
         with store.lock():
             node, route, _ = self._awaiting(node_id, store)

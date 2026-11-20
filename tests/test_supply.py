@@ -117,8 +117,12 @@ def test_refused_supply_holds_and_blocks_until_revised(ellora_dir):
 def test_failed_supply_marks_failed(ellora_dir):
     run(ellora_dir)
     Project(ellora_dir, ELLORA).supply_failure(HERO, refused=False, message="timed out")
-    assert ProjectStore(ellora_dir).get(HERO).status == "failed"
-    assert run(ellora_dir).failed == [HERO]
+    st = ProjectStore(ellora_dir).get(HERO)
+    assert (st.status, st.reason, st.message) == ("failed", "external", "timed out")
+    [entry] = [e for e in Ledger(ellora_dir / "ledger.jsonl").entries() if e["node_id"] == HERO]
+    assert entry["ok"] is False
+    report = run(ellora_dir)
+    assert report.failed == [] and report.awaiting == [HERO]
 
 
 def test_rollback_restores_the_external_ref(ellora_dir):

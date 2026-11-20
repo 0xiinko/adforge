@@ -25,7 +25,7 @@ from engine.providers.base import (
 Outcome = tuple[str, str | None, str | None]  # (status, reason, message)
 
 FINISHED = frozenset({"done", "failed", "needs_review", "blocked"})
-HELD_EXTERNAL = frozenset({("failed", "external"), ("needs_review", "refused")})
+HELD_EXTERNAL = frozenset({("needs_review", "refused")})  # failed retries; refused holds until revised
 
 
 @dataclass
@@ -147,8 +147,9 @@ class Scheduler:
         return report
 
     def _held_external(self, node: Node, fingerprint: str) -> bool:
-        """An external failure reported via `adengine supply --failed/--refused` stays put
-        until the node changes (its fingerprint moves), instead of being re-listed as awaiting."""
+        """A refusal reported via `adengine supply --refused` stays put until the node changes
+        (its fingerprint moves), instead of being re-listed as awaiting. A reported failure
+        (`--failed`) is not held: the next run lists the node as awaiting again."""
         st = self.store.get(node.id)
         return (
             (st.status, st.reason) in HELD_EXTERNAL

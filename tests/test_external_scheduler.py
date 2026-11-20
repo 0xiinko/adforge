@@ -83,10 +83,12 @@ def test_reported_external_failure_holds_until_revised(ellora_dir):
 
 
 def test_reported_external_hard_failure_is_failed(ellora_dir):
+    """Failed retries: the next run lists the node as awaiting again, like engine renders retry."""
     run(ellora_dir, RecordingProvider())
     ProjectStore(ellora_dir).update("refs.product_hero", status="failed", reason="external", message="timeout")
+    assert ProjectStore(ellora_dir).get("refs.product_hero").status == "failed"
     report = run(ellora_dir, RecordingProvider())
-    assert report.failed == ["refs.product_hero"] and report.awaiting == []
+    assert report.failed == [] and report.awaiting == ["refs.product_hero"]
 
 
 def test_old_state_file_loads(tmp_path):
