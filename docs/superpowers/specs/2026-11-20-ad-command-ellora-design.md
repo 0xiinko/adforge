@@ -137,3 +137,11 @@ After the report, natural-language feedback ("shot 3 is too dark") becomes `aden
 - **Example-manifest test (CI, zero cost):** a test copies `skills/ad-runner/example-manifest.json` (one variant, 5 shots, sample Ellora prompts) into a temp project with the Ellora `config.yaml` from §6, validates it with the Ellora config and drives the full mock supply loop to exit 0, checking keyframes have no `@ref` inputs and every clip's `external_inputs.first_frame` is its keyframe's ref.
 - **Plugin structure test:** `plugin.json` parses; every skill has `SKILL.md` with `name` and `description` frontmatter; `commands/ad.md` names all five skills.
 - **Manual end-to-end trial (spends credits):** one real `/ad` run with the user, approved at the gate.
+
+## 10. Supplied scripts, shared body, consistent cast (2026-11-20)
+
+- A brief that contains spoken copy is used word for word (split into ≤ 14-word lines, never paraphrased) after the claim check; a story in the brief drives the angle.
+- "N hooks + one body" briefs become N variants whose timelines share `body.*` nodes, rendered once.
+- Each on-screen person is designed once in `cast.md` (look phrase, voice phrase, reference prompt). `cast.<id>.ref` renders before the gate only with the user's OK; every keyframe with that person references it (`refs` → Ellora `referenceImageUrls`) and repeats the look phrase; every line uses the voice phrase.
+- Every render is visually checked before `adengine supply` (face matches the reference, hands, labels, artifacts); two failed checks → reported as failed.
+- Known limit: Ellora generates each clip's voice separately, so the voice phrase reduces but does not remove voice drift between clips. A fixed TTS voice plus lip-sync is the follow-up for long talking-head ads.

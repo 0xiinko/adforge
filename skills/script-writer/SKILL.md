@@ -16,7 +16,7 @@ The user's copy is the script. Split it into beats; never paraphrase, reorder or
 
 - Split at sentence or clause boundaries into spoken lines that obey the line rules below (≤ 14 words, ≤ ~2.6 words per second of the shot). Keep the words exactly, word for word, including the user's grammar and voice; only the line breaks are yours.
 - Target ≤ 10 words per line (fits a 4 s shot); allow up to 13 only when a line can't be split cleanly — shot-planner then makes that shot 5 s. 14 words never fits.
-- A sentence longer than that is split mid-sentence at the nearest natural pause (a comma, "and", "but", "because", a breath point), keeping every word in order. If a split has to cut inside a clause, flag it in the claim-check section as `split mid-clause: <line>` so the user sees it at the gate.
+- A sentence longer than that is split mid-sentence at the nearest natural pause (a comma, "and", "but", "because", a breath point), keeping every word in order. If a split has to cut inside a clause, flag it on a separate `Notes:` line under the claim check as `split mid-clause: <line>` so the user sees it at the gate. Notes are not claim hits and do not block the gate.
 - In supplied mode the Structure section below (5 beats, hook/CTA placement) does not apply: the user's copy decides the beats. Captions are still yours to write (≤ 6 words, from the line's own words) and go through the claim check.
 - A claim hit that spans two split lines quotes the whole original sentence in the table.
 - With **hooks + shared body**: `vN/script.md` holds only hook N's beats; `body/script.md` holds the body's beats, written once. The ad for variant N is its hook followed by the body.

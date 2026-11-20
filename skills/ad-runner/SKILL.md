@@ -23,7 +23,7 @@ The engine CLI runs from the AdForge repo root (the plugin root): `uv run adengi
 
 ## 1b. Cast preview (before the gate, only with an OK)
 
-If `cast.md` lists anyone on screen, the user should see their faces before approving. Ask: "Render <N> cast reference image(s) in Ellora so you can approve the faces? This uses <N> Ellora image credits, plus at most one retry each if an image fails the visual check." <N> is the exact number of images, one per on-screen cast member. Only on a yes, run the render loop (§3) restricted to the cast: `uv run adengine run projects/<slug> --only "cast.*"`, then `adengine external`, render, check (§3 step 4), supply, until it exits `0`. Check each reference image against: matches the look phrase, plain backdrop, faces the camera, natural face and hands (not "matches the cast reference"; it is the reference). Exit `1` means a reference was held after its retry. Tell the user what was wrong and ask whether to revise that person's look phrase. After a revision, ask the §1b question again for that reference (a new OK: 1 image plus at most one retry); never re-render on the earlier yes. The gate cannot be approved while any cast reference is held and unrevised. If the user declines, the gate shows the look phrases only and the cast renders in the main loop.
+If `cast.md` lists anyone on screen, the user should see their faces before approving. Ask: "Render <N> cast reference image(s) in Ellora so you can approve the faces? This uses <N> Ellora image credits, plus at most one retry each if an image fails the visual check." <N> is the exact number of images, one per on-screen cast member. Only on a yes, run the render loop (§3) restricted to the cast: `uv run adengine run projects/<slug> --only "cast.*"`, then `adengine external`, render, check (§3 step 4), supply, until it exits `0`. Check each reference image against: matches the look phrase, plain backdrop, faces the camera, natural face and hands (not "matches the cast reference"; it is the reference). Exit `1` means a reference was held after its retry: first run `adengine external --json` and render any reference still listed (within the original OK), then tell the user what was wrong and ask whether to revise that person's look phrase. After a revision, ask the §1b question again for that reference (a new OK: 1 image plus at most one retry); never re-render on the earlier yes. The gate cannot be approved while any cast reference is held and unrevised. If the user declines, the gate shows the look phrases only and the cast renders in the main loop.
 
 ## 2. The gate
 
@@ -66,6 +66,8 @@ Write `projects/<slug>/report.md` and show the same to the user:
 - that no music is added: the audio is each clip's own spoken line and natural sound; add music in CapCut if wanted.
 
 ## 5. Revisions
+
+When the user approves a revision of a node (§5) or a revised cast reference (§1b), remove that node from `retried.txt` so the new render gets its one retry.
 
 After the report, turn feedback into node changes:
 - "shot 3 too dark" → `uv run adengine revise projects/<slug> v1.s03.keyframe --json '{"prompt": "<revised prompt>"}' --no-run`.

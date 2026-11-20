@@ -126,3 +126,18 @@ def test_prompt_craft_keeps_cast_consistent_and_fights_slop():
                    "**Reference:** none"):
         assert needle in body, needle
     assert "a warm woman's voice" not in body
+
+
+def test_variant_writer_writes_hooks_only_and_never_the_body():
+    body = (ROOT / "agents" / "variant-writer.md").read_text()
+    for needle in ("cast.md", "hooks + shared body", "never write body/", "look phrase",
+                   "stop and tell the orchestrator"):
+        assert needle in body, needle
+
+
+def test_carry_over_review_fixes():
+    assert "redo stages 4–5" in (ROOT / "commands" / "ad.md").read_text()
+    assert "Notes are not claim hits" in (ROOT / "skills" / "script-writer" / "SKILL.md").read_text()
+    runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
+    for needle in ("remove that node from `retried.txt`", "render any reference still listed"):
+        assert needle in runner, needle
