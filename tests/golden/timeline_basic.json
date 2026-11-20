@@ -1,0 +1,94 @@
+{
+  "duration": 7.0,
+  "fps": 30,
+  "height": 1920,
+  "node": "v1.timeline",
+  "placeholders": [],
+  "tracks": {
+    "captions": [
+      {
+        "end": 1.325,
+        "start": 0.2,
+        "text": "Fresh coffee every"
+      },
+      {
+        "end": 2.2,
+        "start": 1.325,
+        "text": "single morning"
+      },
+      {
+        "end": 3.35,
+        "start": 2.35,
+        "text": "Try it today"
+      }
+    ],
+    "end_card": {
+      "duration": 1.5,
+      "node": null,
+      "path": null,
+      "start": 5.5,
+      "text": "Shop now"
+    },
+    "music": {
+      "duck": true,
+      "duration": 7.0,
+      "node": "shared.music.bed",
+      "path": "shared/music/bed.wav",
+      "source_duration": 10.0,
+      "start": 0.0,
+      "volume": 0.3
+    },
+    "sfx": [
+      {
+        "duration": 0.5,
+        "node": "v1.sfx.whoosh",
+        "path": "v1/sfx/whoosh.wav",
+        "start": 2.9,
+        "volume": 0.8
+      }
+    ],
+    "video": [
+      {
+        "duration": 3.0,
+        "hold": false,
+        "kind": "video",
+        "node": "v1.s01.clip",
+        "path": "v1/shots/s01/clip.mp4",
+        "placeholder_for": null,
+        "start": 0.0,
+        "transition": "cut",
+        "transition_s": 0.0
+      },
+      {
+        "duration": 2.5,
+        "hold": true,
+        "kind": "video",
+        "node": "v1.s02.clip",
+        "path": "v1/shots/s02/clip.mp4",
+        "placeholder_for": null,
+        "start": 3.0,
+        "transition": "crossfade",
+        "transition_s": 0.25
+      }
+    ],
+    "vo": [
+      {
+        "duration": 2.0,
+        "node": "v1.vo.l01",
+        "path": "v1/vo/l01.wav",
+        "start": 0.2,
+        "text": "Fresh coffee every single morning"
+      },
+      {
+        "duration": 1.0,
+        "node": "v1.vo.l02",
+        "path": "v1/vo/l02.wav",
+        "start": 2.35,
+        "text": "Try it today"
+      }
+    ]
+  },
+  "version": 1,
+  "warnings": [],
+  "width": 1080
+}
