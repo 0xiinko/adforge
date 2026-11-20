@@ -42,7 +42,7 @@ class AssemblyProvider(Provider):
         media: dict[str, float] = {}
         for path in dict.fromkeys(media_paths(inputs)):
             p = Path(path)
-            if p.exists():
+            if ctx.sources.get(path) not in ctx.unavailable and p.exists():
                 media[path] = 0.0 if p.suffix.lower() in IMAGE_SUFFIXES else (await self.ff.probe(p)).duration
         data = build_timeline(ctx.node_id, inputs, sources=ctx.sources, project_dir=ctx.project_dir, media=media)
         out = ctx.work_dir / "timeline.json"

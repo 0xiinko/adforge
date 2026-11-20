@@ -96,7 +96,8 @@ class Scheduler:
                 if status[nid] == "pending" and ready(nid):
                     status[nid] = "running"
                     self.store.update(nid, status="running")
-                    running[asyncio.create_task(self._run_node(nid, fps[nid]))] = nid
+                    unavailable = frozenset(d for d in m.nodes[nid].depends_on if status[d] != "done")
+                    running[asyncio.create_task(self._run_node(nid, fps[nid], unavailable))] = nid
 
         launch_ready()
         while running:
@@ -123,7 +124,7 @@ class Scheduler:
             launch_ready()
         return report
 
-    async def _run_node(self, nid: str, fingerprint: str) -> Outcome:
+    async def _run_node(self, nid: str, fingerprint: str, unavailable: frozenset[str] = frozenset()) -> Outcome:
         node = self.manifest.nodes[nid]
         try:
             route = self.config.route(node)
@@ -144,6 +145,7 @@ class Scheduler:
                 ctx = CallContext(
                     node_id=nid, model=route.model, work_dir=self.store.work_dir(nid),
                     project_dir=self.store.dir, sources=sources,
+                    unavailable=unavailable if node.type in ASSEMBLY_TYPES else frozenset(),
                 )
                 try:
                     async with self._sem(route.provider):

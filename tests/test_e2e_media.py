@@ -63,3 +63,14 @@ def test_relative_project_path_renders_with_absolute_draft_paths(media_project, 
     assert Path(draft["materials"]["videos"][0]["path"]).is_absolute()
     meta = json.loads((media_project / "v1/capcut_draft/draft_meta_info.json").read_text())
     assert meta["draft_name"] == "mug-launch_v1"
+
+
+def test_failed_clip_ignores_stale_output_from_earlier_run(media_project, ffmpeg):
+    assert main(["run", str(media_project)]) == 0
+    assert main(["revise", str(media_project), "v1.s01.clip", "--json",
+                 '{"provider": "nope", "model": "x"}', "--no-run"]) == 0
+    assert main(["run", str(media_project), "--only", "v1.preview"]) == 1
+    assert (media_project / "v1/shots/s01/clip.mp4").exists()
+    timeline = json.loads((media_project / "v1/timeline.json").read_text())
+    assert timeline["placeholders"] == ["v1.s01.clip"]
+    assert timeline["tracks"]["video"][0]["kind"] == "image"

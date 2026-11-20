@@ -241,3 +241,11 @@ def test_assembly_rebuilds_when_a_failed_input_recovers(project_dir):
     p = RecordingProvider()
     assert run(project_dir, p).ok
     assert {"v1.timeline", "v1.preview", "v1.capcut_draft"} <= set(p.calls)
+
+
+def test_assembly_context_lists_unavailable_inputs(project_dir):
+    p = ContextRecorder()
+    p.fail = {"v1.s01.keyframe"}
+    run(project_dir, p)
+    assert p.contexts["v1.timeline"].unavailable == {"v1.s01.keyframe", "v1.s01.clip"}
+    assert p.contexts["v2.timeline"].unavailable == frozenset()
