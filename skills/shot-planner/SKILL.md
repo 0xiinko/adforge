@@ -11,7 +11,7 @@ Output: `projects/<slug>/vN/shots.md`, plus `projects/<slug>/body/shots.md` once
 ## Rules
 
 - One shot per beat. Hook or full-variant shots are `vN.s01`, `vN.s02`, …; shared body shots are `body.s01`, `body.s02`, … (written once, used by every variant).
-- Each shot lists its **Cast**: the cast ids on screen (or `—`). A shot whose line is spoken off camera lists `—` on screen and names the voice in the Spoken line column. Then fill in each person's "Appears in" line in `cast.md`.
+- Each shot lists its **Cast**: the cast ids on screen (or `—`; map the script's role names to cast ids using the Role lines in cast.md). A shot whose line is spoken off camera lists `—` on screen and names the voice in the Spoken line column. Then fill in each person's "Appears in" line in `cast.md`.
 - Keep each person in one setting and one outfit across the ad unless the story moves them; a new setting is a new risk of drift.
 - Prefer shots that AI video renders cleanly: one person, one simple action, steady or slowly moving camera, hands still or out of frame; avoid fiddly hand actions, crowds, fast motion, and text on objects other than the product labels.
 - Each shot is 4 or 5 seconds; the total is within the plan's length (default 20–25 s, plus the 2 s end card).

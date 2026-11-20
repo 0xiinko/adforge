@@ -31,7 +31,7 @@ When the plan says **Script source: written**, write the script yourself followi
 
 ## Lines
 
-- One spoken line per beat, said inside that shot's clip by a cast member: on camera (lip-synced) or off camera (their voice over a shot without them). Speakers are cast ids from `cast.md` (written next); use a short role name here (`presenter`, `friend`) and cast-designer turns it into the id. Ellora renders the line with the clip, so there is no separate voiceover. **14 words or fewer**, spoken naturally, and short enough for its shot: at most ~2.6 words per second (≤ 10 words for a 4 s shot, ≤ 13 for 5 s).
+- One spoken line per beat, said inside that shot's clip by a cast member: on camera (lip-synced) or off camera (their voice over a shot without them). Speakers are role names (`presenter`, `friend`), not cast ids: cast-designer maps each role to a cast id in `cast.md`. Write the speaker as `role (on camera)` or `role (off camera)`. Ellora renders the line with the clip, so there is no separate voiceover. **14 words or fewer**, spoken naturally, and short enough for its shot: at most ~2.6 words per second (≤ 10 words for a 4 s shot, ≤ 13 for 5 s).
 - One on-screen caption per beat (may repeat the line's key words; ≤ 6 words).
 - Tone: plain, unembarrassed, a bit conspiratorial about what the industry leaves out. Not clinical. Not wellness-influencer.
 - No music: the clips carry natural sound only (music can be added later in CapCut).
@@ -56,8 +56,8 @@ Safe ground: digestive comfort, bloating, regularity, energy, gut health support
 
 | Beat | Spoken line (≤ 14 words) | Speaker | Caption |
 |---|---|---|---|
-| 1 hook | ... | on camera | ... |
-| 2 | ... | off-camera voice | ... |
+| 1 hook | ... | presenter (on camera) | ... |
+| 2 | ... | presenter (off camera) | ... |
 | 3 | ... | ... | ... |
 | 4 | ... | ... | ... |
 | 5 CTA | ... | ... | ... |

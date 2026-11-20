@@ -86,7 +86,7 @@ def test_strategist_detects_supplied_scripts_and_story():
 def test_cast_designer_defines_fixed_phrases():
     body = (ROOT / "skills" / "cast-designer" / "SKILL.md").read_text()
     for needle in ("cast.md", "Look phrase", "Voice phrase", "Reference prompt", "cast.<id>.ref",
-                   "word for word", "No cast", "Defaults chosen", "voice only", "may be shown on screen",
+                   "word for word", "No cast", "Defaults chosen", "voice only", "may be shown on screen", "Role",
                    "Variant-writers may only use people already in cast.md",
                    "no extra fingers, no text, no watermark."):
         assert needle in body, needle
@@ -101,7 +101,7 @@ def test_writer_and_planner_handle_supplied_scripts_and_shared_body():
     writer = (ROOT / "skills" / "script-writer" / "SKILL.md").read_text()
     planner = (ROOT / "skills" / "shot-planner" / "SKILL.md").read_text()
     for needle in ("Script source: supplied", "script-source.md", "word for word", "never paraphrase",
-                   "body/script.md", "compliant rewrite"):
+                   "body/script.md", "compliant rewrite", "presenter (on camera)"):
         assert needle in writer, needle
-    for needle in ("body/shots.md", "body.s01", "Cast", "cast.md"):
+    for needle in ("body/shots.md", "body.s01", "Cast", "cast.md", "Role lines in cast.md"):
         assert needle in planner, needle
