@@ -28,6 +28,7 @@ This is the first piece of the AdForge "brain" (main spec build order step 6), s
 | Product reference | No separate `refs.product_hero` node. Ellora attaches the right bottle reference automatically when a prompt names the product with its trigger words (brand context lists them), so keyframes have no `@ref` inputs. |
 | Gate | One. It shows the script, the claim check, the shot list with prompts, and the full render list. Approval covers exactly those renders and their downloads. |
 | Engine access | The brain runs the `adengine` CLI through Bash (the MCP server does not exist yet). |
+| Ellora models | Default image `nano-banana-pro` (legible label text), video `kling-3.0/video` (first frame, 9:16, 3–15 s). prompt-craft confirms them with `list_models` each brief; the user can name others. |
 
 ## 3. Plugin layout
 
@@ -119,7 +120,7 @@ Per variant `vN`:
 After approval (ellora-integration spec §4, with these specifics):
 1. `adengine run projects/<slug>`. Exit `3` → continue; `0` → done; `1` → report what needs attention.
 2. `adengine external projects/<slug> --json`.
-3. Images: `generate_image` per awaiting keyframe (prompt, `modelId`, `aspectRatio`), independent ones in parallel. Videos: `generate_video` with `firstFrameUrl` = the keyframe's `external_inputs.first_frame`, then `check_generation` (`wait: true`) until done.
+3. Images: `generate_image` per awaiting keyframe (prompt, `modelId`, `aspectRatio`), independent ones in parallel. Videos: `generate_video` with `firstFrameUrl` = the keyframe's `external_inputs.first_frame`, `durationSec`, `aspectRatio` and `generateAudio: false` (VO and music come from the timeline), then `check_generation` (`wait: true`) until done.
 4. Download each result from the link `check_generation` returns into `projects/<slug>/.tmp/ellora/` and `adengine supply <project> <node> <file> --ref <Ellora path> --id <generation id> --fingerprint <fp>`. Supplies may run in parallel (the engine locks state).
 5. Failure → `supply --failed "<message>"`; the next run retries it once; a second failure stops the loop and is reported. Refusal → `supply --refused`, one prompt rewrite through `adengine revise` (a re-render of the same shot is covered by the gate approval); a second refusal is reported.
 6. Repeat from 1.
