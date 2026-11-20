@@ -28,7 +28,7 @@ If the Ellora connector is not available in this session, stop and tell the user
 ## 2. Slug, brief and script source
 
 - Slug: `<product>-<angle>` in lowercase with hyphens, e.g. `complete-kit-dustpan`. If `projects/<slug>/` already holds a different ad, add `-2`, `-3`.
-- Write the user's brief, word for word, to `projects/<slug>/brief.md`. If the user gave a file path (`.txt`, `.md`), read it and copy its text; for a Google Doc, PDF or Word file, ask the user to paste the text.
+- Write the user's brief, word for word, to `projects/<slug>/brief.md`. If the user gave a file path (`.txt`, `.md`, `.pdf`), read it (the Read tool reads PDFs) and copy its text; keep any links it contains (e.g. a reference ad) in `brief.md`. For a Google Doc or Word file, ask the user to paste the text or export it as PDF.
 - Decide the **script source**:
   - **Script source: supplied** — the brief already contains spoken copy: hook paragraphs, a body, a full monologue, lines in quotes. Copy that copy, word for word and in order, to `projects/<slug>/script-source.md`, split into sections: `## Hook 1 — <name>`, `## Hook 2 — <name>`, …, and `## Body` when there is one (a single monologue with no hooks is `## Hook 1` with no body). Keep any stage notes from the brief (who speaks, tone, banners) under `## Notes`.
   - **Script source: written** — the brief describes the product, audience, angle or a story, but has no spoken copy. Never invent a script at this stage; script-writer writes it.
