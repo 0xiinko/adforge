@@ -90,6 +90,7 @@ def test_cast_designer_defines_fixed_phrases():
                    "Variant-writers may only use people already in cast.md",
                    "no extra fingers, no text, no watermark."):
         assert needle in body, needle
+    assert "Maya's voice:" not in body
 
 
 def test_ad_command_updates_cast_when_a_person_changes():
@@ -117,5 +118,8 @@ ANTI_SLOP_VIDEO = "Stable face and hands, no morphing or warping."
 def test_prompt_craft_keeps_cast_consistent_and_fights_slop():
     body = (ROOT / "skills" / "prompt-craft" / "SKILL.md").read_text()
     for needle in (ANTI_SLOP_IMAGE, ANTI_SLOP_VIDEO, "look phrase", "voice phrase", "cast.md",
-                   "Reference: cast.", "body/prompts.md", "word for word"):
+                   "Reference: cast.", "body/prompts.md", "word for word",
+                   "Off camera, in <voice phrase>, she says:", "in <voice phrase>:", "## body.sNN",
+                   "**Reference:** none"):
         assert needle in body, needle
+    assert "a warm woman's voice" not in body

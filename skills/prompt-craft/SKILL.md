@@ -21,9 +21,11 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 ## Cast consistency
 
 - Every keyframe with a cast member on screen: write `Reference: cast.<id>.ref` above the prompt (the manifest attaches that image), and put the person's **look phrase** from `cast.md` in the prompt, word for word. Never re-describe them in other words, and never change the outfit or hair unless `shots.md` says the story does.
-- Every clip prompt with a spoken line: use the speaker's **voice phrase** from `cast.md`, word for word, whether they are on camera ("she looks into the camera and says, lips in sync, in <voice phrase>: …") or off camera ("<voice phrase>, off camera, says: …").
+- Every clip prompt with a spoken line: use the speaker's **voice phrase** from `cast.md`, word for word. On camera: `she looks into the camera and says, lips in sync, in <voice phrase>: "<line>"`. Off camera: `Off camera, in <voice phrase>, she says: "<line>"` (use he/they as fits the person).
 - Keep one look for the whole ad: the same light, lens and colour words in every keyframe of a setting.
 - A voice-only cast member (no reference node) is never shown on screen; their lines are always off camera, using their voice phrase.
+- Find each shot's people and speaker by role in `cast.md` (its `Role:` lines); `shots.md` already lists on-screen cast ids.
+- Write `**Reference:** none` when no cast member is on screen; with two people on screen, list both ids comma-separated (the manifest gets both refs).
 
 ## Keyframe (image) prompts
 
@@ -41,7 +43,7 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 - Keep labels sharp and readable in bottle shots ("the label stays sharp and readable").
 - Clips render with their own audio. Every clip prompt contains:
   - the shot's exact spoken line from `shots.md`, in double quotes, word for word;
-  - who speaks it: the on-camera person ("she looks into the camera and says, lips in sync: ...") or, when nobody is on screen, a voice ("a warm woman's voice, off camera, says: ..."); keep the same voice across the variant;
+  - who speaks it: the speaker's voice phrase from `cast.md`, word for word (see Cast consistency) — on camera: `she looks into the camera and says, lips in sync, in <voice phrase>: "<line>"`; off camera: `Off camera, in <voice phrase>, she says: "<line>"`;
   - the delivery, in the brand's tone (plain, unembarrassed, a bit conspiratorial; never clinical or influencer);
   - "Natural ambient sound, no music."
 - Every clip prompt contains exactly: `Stable face and hands, no morphing or warping.` Keep motion small and continuous; never ask for hands to do fine work (opening caps, counting drops) in close-up.
@@ -55,12 +57,15 @@ Use `search_prompts` with a few key words of each shot (e.g. "packshot greige", 
 - Video model: kling-3.0/video
 - Aspect: 9:16
 
-## v1.s01 (4 s)
-**Reference:** cast.maya.ref  ← or "none"
+Headings are the shot ids: `## vN.sNN` in `vN/prompts.md` (N = that file's variant) and `## body.sNN` in `body/prompts.md`.
+
+## vN.s01 (4 s)
+**Reference:** cast.maya.ref
 **Keyframe:** <image prompt with the look phrase> Natural skin texture, anatomically correct hands, no extra fingers, no text, no watermark.
 **Clip:** <motion> she looks into the camera and says, lips in sync, in <voice phrase>: "<spoken line>" Stable face and hands, no morphing or warping. Natural ambient sound, no music.
+(Off camera, replace the on-camera phrase with `Off camera, in <voice phrase>, she says: "<spoken line>"`.)
 
-## v1.s02 (5 s)
+## vN.s02 (5 s)
 ...
 ```
 
