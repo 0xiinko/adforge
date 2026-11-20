@@ -23,6 +23,8 @@ sudo apt install -y ffmpeg fonts-dejavu-core
 ffmpeg -hide_banner -filters | grep -E " (xfade|sidechaincompress|subtitles|drawtext|zoompan) "
 ```
 
+On macOS (the production machine): `brew install ffmpeg`. Captions and slates use Helvetica from `/System/Library/Fonts/Helvetica.ttc` by default (see `AssemblyConfig.font_file`), so no extra fonts are needed.
+
 Expected: five matching filter lines. Ubuntu's ffmpeg build includes libass, freetype and fontconfig, which these filters need. Tests that need ffmpeg use the `ffmpeg` fixture and **skip** when it is missing, so the rest of the suite stays green. Plan 2 isn't finished until those tests actually run and pass.
 
 ## Global Constraints
@@ -30,6 +32,7 @@ Expected: five matching filter lines. Ubuntu's ffmpeg build includes libass, fre
 - Python `>=3.11`. Runtime Python deps stay exactly `jsonschema` and `pyyaml`. ffmpeg/ffprobe are external binaries whose paths come from config (`assembly.ffmpeg`, `assembly.ffprobe`).
 - ffmpeg is always invoked with an argument list (`asyncio.create_subprocess_exec`), never through a shell. User text such as captions and end-card copy reaches ffmpeg only through files (`textfile=`, `.ass`), never by interpolating it into filter strings.
 - The engine makes no creative decisions. Shot order, slot durations, transitions, VO text, SFX timing, music volume and end-card copy all come from the timeline node's `inputs`, which the brain writes. The engine only fills mechanical defaults (named constants in `engine/assembly/timeline.py`).
+- Runs on Linux (development) and macOS (production). Platform differences live only in `AssemblyConfig` defaults: the font, an optional font file, and the CapCut drafts folder example. Never branch on the platform anywhere else.
 - All audio outputs are `.wav` (spec §4). This changes `music` from `.mp3` to `.wav`.
 - Every CapCut clip is named by its node ID. CapCut-format knowledge lives only in `engine/assembly/capcut_draft.py` and `engine/assembly/capcut_template.json`.
 - Assembly nodes (`timeline`, `preview`, `capcut_draft`) are free. They are routed like any node but never write ledger entries (the scheduler already logs only `GENERATION_TYPES`).
@@ -106,7 +109,7 @@ tests/
 **Interfaces:**
 - Consumes: Plan 1's `EngineConfig`, `CallContext`, `Scheduler._run_node`, `make_manifest`.
 - Produces:
-  - `engine.config.AssemblyConfig(ffmpeg: str = "ffmpeg", ffprobe: str = "ffprobe", font: str = "DejaVu Sans")`
+  - `engine.config.AssemblyConfig(ffmpeg: str = "ffmpeg", ffprobe: str = "ffprobe", font: str = default_font(), font_file: str | None = default_font_file())`. On macOS (`sys.platform == "darwin"`) the defaults are `"Helvetica"` and `"/System/Library/Fonts/Helvetica.ttc"`. Elsewhere they are `"DejaVu Sans"` and `None`. `font` is the family name used by captions (libass). `font_file`, when set, is passed to ffmpeg drawtext as `fontfile=` instead of `font=`.
   - `engine.config.CapcutConfig(drafts_dir: Path | None = None, media_root: str | None = None)`
   - `EngineConfig.assembly: AssemblyConfig` and `EngineConfig.capcut: CapcutConfig`, both parsed by `from_dict` from the `assembly:` and `capcut:` sections. `media_root` has trailing `/` and `\` stripped, and `drafts_dir` has `~` expanded.
   - `engine.providers.base.CallContext` gains `project_dir: Path | None = None` and `sources: dict[str, str]` (default `{}`). For assembly nodes, the scheduler sets `project_dir = store.dir` and `sources = {str(absolute output path of dep): dep_id for every dep}`. Other nodes get `project_dir` and an empty `sources`.
@@ -116,13 +119,22 @@ tests/
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `tests/test_config.py`:
+Append to `tests/test_config.py`, and add `from engine.config import AssemblyConfig, default_font, default_font_file` to its imports:
 
 ```python
 def test_assembly_and_capcut_defaults():
     cfg = EngineConfig()
-    assert (cfg.assembly.ffmpeg, cfg.assembly.ffprobe, cfg.assembly.font) == ("ffmpeg", "ffprobe", "DejaVu Sans")
+    assert (cfg.assembly.ffmpeg, cfg.assembly.ffprobe) == ("ffmpeg", "ffprobe")
+    assert (cfg.assembly.font, cfg.assembly.font_file) == (default_font(), default_font_file())
     assert cfg.capcut.drafts_dir is None and cfg.capcut.media_root is None
+
+
+def test_font_defaults_per_platform(monkeypatch):
+    monkeypatch.setattr("sys.platform", "darwin")
+    assert (default_font(), default_font_file()) == ("Helvetica", "/System/Library/Fonts/Helvetica.ttc")
+    monkeypatch.setattr("sys.platform", "linux")
+    assert (default_font(), default_font_file()) == ("DejaVu Sans", None)
+    assert AssemblyConfig().font == "DejaVu Sans"
 
 
 def test_assembly_and_capcut_from_dict(tmp_path):
@@ -131,6 +143,7 @@ def test_assembly_and_capcut_from_dict(tmp_path):
         "capcut": {"drafts_dir": str(tmp_path / "drafts"), "media_root": "C:/AdForge/projects/"},
     })
     assert (cfg.assembly.ffmpeg, cfg.assembly.ffprobe, cfg.assembly.font) == ("/opt/ff/ffmpeg", "ffprobe", "Inter")
+    assert EngineConfig.from_dict({"assembly": {"font_file": "/fonts/Inter.ttf"}}).assembly.font_file == "/fonts/Inter.ttf"
     assert cfg.capcut.drafts_dir == tmp_path / "drafts"
     assert cfg.capcut.media_root == "C:/AdForge/projects"
 ```
@@ -173,21 +186,30 @@ def test_assembly_nodes_get_project_dir_and_sources(project_dir):
 - [ ] **Step 2: Run them to verify they fail**
 
 Run: `uv run pytest tests/test_config.py tests/test_paths.py tests/test_scheduler.py -q`
-Expected: 4 failures:
+Expected: 5 failures (the platform-font test also fails, with `ImportError`):
 - `test_assembly_and_capcut_defaults` and `test_assembly_and_capcut_from_dict`: `AttributeError: 'EngineConfig' object has no attribute 'assembly'`.
 - The music path row: `bed.mp3 != bed.wav`.
 - `test_assembly_nodes_get_project_dir_and_sources`: `AttributeError: ... 'project_dir'`.
 
 - [ ] **Step 3: Implement config sections**
 
-In `engine/config.py`, add after `RetryConfig`:
+In `engine/config.py`, add `import sys` to the imports, then add after `RetryConfig`:
 
 ```python
+def default_font() -> str:
+    return "Helvetica" if sys.platform == "darwin" else "DejaVu Sans"
+
+
+def default_font_file() -> str | None:
+    return "/System/Library/Fonts/Helvetica.ttc" if sys.platform == "darwin" else None
+
+
 @dataclass
 class AssemblyConfig:
     ffmpeg: str = "ffmpeg"
     ffprobe: str = "ffprobe"
-    font: str = "DejaVu Sans"
+    font: str = field(default_factory=default_font)            # family name for captions (libass)
+    font_file: str | None = field(default_factory=default_font_file)  # drawtext fontfile=; None → font=
 
 
 @dataclass
@@ -210,7 +232,8 @@ In `EngineConfig.from_dict`, insert before the final `return cfg`:
         cfg.assembly = AssemblyConfig(
             ffmpeg=str(asm.get("ffmpeg", "ffmpeg")),
             ffprobe=str(asm.get("ffprobe", "ffprobe")),
-            font=str(asm.get("font", "DejaVu Sans")),
+            font=str(asm.get("font", default_font())),
+            font_file=str(asm["font_file"]) if asm.get("font_file") else default_font_file(),
         )
         cap = data.get("capcut") or {}
         cfg.capcut = CapcutConfig(
@@ -445,7 +468,8 @@ command git commit -m "feat(engine): assembly nodes run once inputs finish, enab
 - Consumes: `AssemblyConfig` (Task 1), `ProviderError` (Plan 1).
 - Produces:
   - `engine.assembly.ffmpeg.MediaInfo(duration: float, width: int|None, height: int|None, has_video: bool, has_audio: bool)` (frozen)
-  - `engine.assembly.ffmpeg.FFmpeg(config: AssemblyConfig | None = None)` with attributes `.ffmpeg`, `.ffprobe`, `.font` and methods:
+  - `engine.assembly.ffmpeg.FFmpeg(config: AssemblyConfig | None = None)` with attributes `.ffmpeg`, `.ffprobe`, `.font`, `.font_file` and methods:
+    - `font_option() -> str` returns `"fontfile='<font_file>'"` when `font_file` is set, else `"font='<font>'"`. Every drawtext call uses it.
     - `available() -> bool`
     - `async run(args: list[str], cwd: Path | None = None) -> None`. It prepends `ffmpeg -hide_banner -loglevel error -y`.
     - `async probe(path: Path) -> MediaInfo`
@@ -508,6 +532,13 @@ def test_probe_image_dimensions(ffmpeg, tmp_path):
     assert (info.width, info.height) == (64, 112)
 
 
+def test_font_option_prefers_font_file():
+    assert FFmpeg(AssemblyConfig(font="Inter", font_file=None)).font_option() == "font='Inter'"
+    assert FFmpeg(AssemblyConfig(font="Helvetica", font_file="/System/Library/Fonts/Helvetica.ttc")).font_option() == (
+        "fontfile='/System/Library/Fonts/Helvetica.ttc'"
+    )
+
+
 def test_ffmpeg_failure_reports_stderr(ffmpeg, tmp_path):
     with pytest.raises(ProviderError, match="ffmpeg failed"):
         asyncio.run(ffmpeg.run(["-i", "does-not-exist.mp4", "out.mp4"], cwd=tmp_path))
@@ -559,6 +590,11 @@ class FFmpeg:
         self.ffmpeg = cfg.ffmpeg
         self.ffprobe = cfg.ffprobe
         self.font = cfg.font
+        self.font_file = cfg.font_file
+
+    def font_option(self) -> str:
+        """drawtext font selector: an explicit file (macOS default) or a fontconfig family name."""
+        return f"fontfile='{self.font_file}'" if self.font_file else f"font='{self.font}'"
 
     def available(self) -> bool:
         return shutil.which(self.ffmpeg) is not None and shutil.which(self.ffprobe) is not None
@@ -602,7 +638,7 @@ class FFmpeg:
 - [ ] **Step 4: Run tests**
 
 Run: `uv run pytest tests/test_ffmpeg.py -v`
-Expected: 5 passed with ffmpeg installed. Without it, `test_missing_binary_is_a_provider_error` passes and the other 4 are skipped.
+Expected: 6 passed with ffmpeg installed. Without it, the two tests that don't need ffmpeg pass and the other 4 are skipped.
 
 - [ ] **Step 5: Commit**
 
@@ -721,7 +757,7 @@ class MediaMockProvider(Provider):
 
     def _label(self, ctx: CallContext, text: str, size: int) -> str:
         (ctx.work_dir / "label.txt").write_text(text)
-        return (f"drawtext=font='{self.ff.font}':textfile=label.txt:expansion=none:fontcolor=white"
+        return (f"drawtext={self.ff.font_option()}:textfile=label.txt:expansion=none:fontcolor=white"
                 f":fontsize={size}:x=(w-text_w)/2:y=(h-text_h)/2")
 
     async def generate_image(self, ctx, prompt, refs, size, n):
@@ -1371,8 +1407,8 @@ def _fit(width: int, height: int) -> str:
     return f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"
 
 
-def drawtext(font: str, textfile: str, size: int) -> str:
-    return (f"drawtext=font='{font}':textfile={textfile}:expansion=none:fontcolor=white:fontsize={size}"
+def drawtext(font_option: str, textfile: str, size: int) -> str:
+    return (f"drawtext={font_option}:textfile={textfile}:expansion=none:fontcolor=white:fontsize={size}"
             f":borderw={max(2, size // 12)}:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2")
 
 
@@ -1431,7 +1467,7 @@ async def render_slate_image(ff: FFmpeg, work_dir: Path, name: str, width: int, 
     (work_dir / label).write_text(text)
     await ff.run([
         "-f", "lavfi", "-i", f"color=c={SLATE_COLOR}:s={width}x{height}", "-frames:v", "1",
-        "-vf", drawtext(ff.font, label, height // 24), name,
+        "-vf", drawtext(ff.font_option(), label, height // 24), name,
     ], cwd=work_dir)
     return work_dir / name
 
@@ -1463,7 +1499,7 @@ async def _end_card(ff: FFmpeg, card: dict, project_dir: Path, work_dir: Path, w
         filters = ["setsar=1"]
     if card["text"]:
         (work_dir / "end_card.txt").write_text(card["text"])
-        filters.append(drawtext(ff.font, "end_card.txt", height // 14))
+        filters.append(drawtext(ff.font_option(), "end_card.txt", height // 14))
     filters.append(f"fps={fps}")
     await ff.run([*source, "-vf", ",".join(filters), "-t", f"{card['duration']:.3f}", "-r", str(fps),
                   *X264_FAST, "-an", "seg_end.mp4"], cwd=work_dir)
@@ -2327,14 +2363,17 @@ retry:
 assembly:
   ffmpeg: ffmpeg
   ffprobe: ffprobe
-  font: DejaVu Sans
+  # Defaults: macOS → font Helvetica + font_file /System/Library/Fonts/Helvetica.ttc; Linux → DejaVu Sans.
+  # font: Helvetica
+  # font_file: /System/Library/Fonts/Helvetica.ttc
 
 # CapCut export. Unset drafts_dir keeps each draft only in projects/<slug>/vN/capcut_draft.
 capcut:
-  # Folder CapCut scans for drafts (for example a synced copy of its Projects folder):
-  # drafts_dir: ~/CapCutDrafts
-  # How this machine's projects/ folder is seen from the machine running CapCut:
-  # media_root: C:/AdForge/projects
+  # Folder CapCut scans for drafts. On a Mac running CapCut desktop this is usually:
+  # drafts_dir: ~/Movies/CapCut/User Data/Projects/com.lveditor.draft
+  # Only when CapCut runs on a DIFFERENT machine: how this machine's projects/ folder is seen there.
+  # Leave unset when the engine and CapCut share the Mac (paths are already correct).
+  # media_root: /Volumes/Shared/AdForge/projects
 ```
 
 - [ ] **Step 5: Run tests**
