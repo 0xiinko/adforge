@@ -140,6 +140,8 @@ After the report, natural-language feedback ("shot 3 is too dark") becomes `aden
 
 ## 10. Supplied scripts, shared body, consistent cast (2026-11-20)
 
+Supersedes: §2 "Product reference" and the §6 keyframe row (a keyframe showing a cast member carries `refs: ["@cast.<id>.ref"]`; keyframes without people still have no refs), the §9 example-manifest check that keyframes have no `@ref` inputs, and the "five skills" in §3 and §9 (the plugin now has six stage skills: cast-designer runs between script-writer and shot-planner).
+
 - A brief that contains spoken copy is used word for word (split into ≤ 14-word lines, never paraphrased) after the claim check; a story in the brief drives the angle.
 - "N hooks + one body" briefs become N variants whose timelines share `body.*` nodes, rendered once.
 - Each on-screen person is designed once in `cast.md` (look phrase, voice phrase, reference prompt). `cast.<id>.ref` renders before the gate only with the user's OK; every keyframe with that person references it (`refs` → Ellora `referenceImageUrls`) and repeats the look phrase; every line uses the voice phrase.

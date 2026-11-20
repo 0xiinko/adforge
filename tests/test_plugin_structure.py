@@ -139,5 +139,17 @@ def test_carry_over_review_fixes():
     assert "redo stages 4–5" in (ROOT / "commands" / "ad.md").read_text()
     assert "Notes are not claim hits" in (ROOT / "skills" / "script-writer" / "SKILL.md").read_text()
     runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
-    for needle in ("remove that node from `retried.txt`", "render any reference still listed"):
+    for needle in ("remove that node from `projects/<slug>/.tmp/ellora/retried.txt`",
+                   "render any reference still listed"):
         assert needle in runner, needle
+
+
+def test_task6_review_fixes():
+    runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
+    assert "any `Notes:` lines from the scripts" in runner and "they do not block approval" in runner
+    spec = (ROOT / "docs" / "superpowers" / "specs" / "2026-11-20-ad-command-ellora-design.md").read_text()
+    assert "Supersedes" in spec and "six stage skills" in spec
+    writer = (ROOT / "agents" / "variant-writer.md").read_text()
+    assert "needs cast:" in writer and "`projects/<slug>/script-source.md`" in writer
+    command = (ROOT / "commands" / "ad.md").read_text()
+    assert "needs cast:" in command and "Speaker column" in command

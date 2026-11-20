@@ -32,7 +32,7 @@ Show, in this order, then stop and wait for the user:
 1. **Assumptions** — every *(default)* from `plan.md`.
 2. **Cast** — per person: the reference image (`cast/<id>/ref.png`) if rendered, the look phrase and the voice phrase, their "Defaults chosen" line, with every *(default)* choice marked. The user may ask for a different face, outfit or voice: revise the cast entry and its prompt, re-render the reference (another OK), and show the gate again.
 3. **Script** per variant — hook, spoken lines (who says each), captions, end card.
-4. **Claim check** — "clean", or each hit with the rule and the compliant rewrite. The gate cannot be approved while a hit is unresolved: the user accepts the rewrite or edits the line.
+4. **Claim check** — "clean", or each hit with the rule and the compliant rewrite. The gate cannot be approved while a hit is unresolved: the user accepts the rewrite or edits the line. Then any `Notes:` lines from the scripts (e.g. `split mid-clause: <line>`), shown so the user can re-split them; they do not block approval.
 5. **Shots and prompts** — per shot: seconds, keyframe prompt, clip prompt (with its quoted spoken line).
 6. **Render list** — Ellora images: cast references not yet rendered + every keyframe; Ellora videos: every clip. Count shared body shots once, and say so ("body: 4 images + 4 videos, shared by all N variants"). Say plainly: these spend your Ellora credits (videos far more than images) and land in your Ellora library — plus at most one corrective retry per image or clip after a failed visual check (a clip retry costs a video).
 
@@ -67,7 +67,7 @@ Write `projects/<slug>/report.md` and show the same to the user:
 
 ## 5. Revisions
 
-When the user approves a revision of a node (§5) or a revised cast reference (§1b), remove that node from `retried.txt` so the new render gets its one retry.
+When the user approves a revision of a node (§5) or a revised cast reference (§1b), remove that node from `projects/<slug>/.tmp/ellora/retried.txt` so the new render gets its one retry.
 
 After the report, turn feedback into node changes:
 - "shot 3 too dark" → `uv run adengine revise projects/<slug> v1.s03.keyframe --json '{"prompt": "<revised prompt>"}' --no-run`.
