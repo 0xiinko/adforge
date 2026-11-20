@@ -129,3 +129,9 @@ def test_external_nodes_rejects_an_input_without_an_external_ref(ellora_dir):
         "v1.s01.keyframe: input @refs.product_hero has no external ref; "
         "supply refs.product_hero again (revise it or run adengine run)"
     )
+
+
+def test_external_errors_uses_the_manifest_it_is_given(ellora_dir):
+    manifest = project(ellora_dir).manifest()
+    (ellora_dir / "manifest.json").write_text("not json")
+    assert project(ellora_dir).external_errors(manifest) == []

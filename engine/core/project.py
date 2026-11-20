@@ -73,7 +73,7 @@ class Project:
 
     def external_errors(self, manifest: Manifest | None = None) -> list[str]:
         """Manifest problems that would leave external nodes impossible to supply."""
-        manifest = manifest or self.manifest()
+        manifest = manifest if manifest is not None else self.manifest()
         routes = {nid: self.config.external_route(n) for nid, n in manifest.nodes.items()}
         errors: list[str] = []
         for nid in manifest.topo_order():

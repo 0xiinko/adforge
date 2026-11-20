@@ -46,8 +46,10 @@ def test_supply_and_refuse(ellora_dir, capsys):
     capsys.readouterr()
     assert main(["supply", str(ellora_dir), "v1.s01.keyframe", "--refused", "content policy"]) == 0
     assert "v1.s01.keyframe marked needs_review (refused)" in capsys.readouterr().out
-    assert main(["run", str(ellora_dir)]) == 1  # 1 wins over 3
-    assert "ATTENTION v1.s01.keyframe" in capsys.readouterr().out
+    assert main(["run", str(ellora_dir)]) == 1  # 1 wins over 3: a refusal and awaiting nodes at once
+    out = capsys.readouterr().out
+    assert "ATTENTION v1.s01.keyframe" in out
+    assert "AWAITING v2.s01.keyframe" in out and "awaiting 3" in out
 
 
 def test_supply_argument_errors(ellora_dir, capsys):
@@ -58,6 +60,14 @@ def test_supply_argument_errors(ellora_dir, capsys):
     f = supply_file(ellora_dir, {"id": HERO, "type": "image"})
     assert main(["supply", str(ellora_dir), HERO, str(f), "--failed", "x"]) == 1
     assert "not both" in capsys.readouterr().err
+    for flag in (["--ref", "r"], ["--id", "g1"], ["--fingerprint", "fp"]):
+        for report in ("--failed", "--refused"):
+            assert main(["supply", str(ellora_dir), HERO, *flag, report, "x"]) == 1
+            assert capsys.readouterr().err.strip() == (
+                f"ERROR: {flag[0]} goes with a supplied file, not with --failed/--refused"
+            )
+    assert main(["status", str(ellora_dir)]) == 0
+    assert f"{HERO:<28} awaiting_external v0" in capsys.readouterr().out  # still awaiting: nothing recorded
     assert main(["supply", str(ellora_dir), "v1.vo.l01", str(f), "--ref", "r"]) == 1
     assert "not routed to an external provider" in capsys.readouterr().err
 
@@ -95,3 +105,13 @@ def test_full_claude_loop_finishes(ellora_dir, capsys):
     assert code == 0 and passes == 3  # hero, keyframes, clips
     assert (ellora_dir / "v1" / "preview.mp4").exists()
     assert (ellora_dir / "v2" / "capcut_draft").is_dir()
+
+
+def test_status_aligns_awaiting_external(ellora_dir, capsys):
+    main(["run", str(ellora_dir)])
+    capsys.readouterr()
+    assert main(["status", str(ellora_dir)]) == 0
+    lines = {line.split()[0]: line for line in capsys.readouterr().out.splitlines()}
+    assert lines[HERO].startswith(f"{HERO:<28} {'awaiting_external':<17} v0")
+    assert lines["v1.vo.l01"].startswith(f"{'v1.vo.l01':<28} {'done':<17} v1")
+    assert lines["v1.s01.keyframe"].startswith(f"{'v1.s01.keyframe':<28} {'pending':<17} v0")

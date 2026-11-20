@@ -83,7 +83,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_status(args: argparse.Namespace) -> int:
     for nid, st in _project(args).status():
-        line = f"{nid:<28} {st.status:<13} v{st.version}"
+        line = f"{nid:<28} {st.status:<17} v{st.version}"
         if st.pinned_version is not None:
             line += " (pinned)"
         if st.reason:
@@ -131,6 +131,10 @@ def cmd_supply(args: argparse.Namespace) -> int:
         if args.file is not None:
             print("ERROR: give a file or --failed/--refused, not both", file=sys.stderr)
             return 1
+        for flag, value in (("--ref", args.ref), ("--id", args.external_id), ("--fingerprint", args.fingerprint)):
+            if value is not None:
+                print(f"ERROR: {flag} goes with a supplied file, not with --failed/--refused", file=sys.stderr)
+                return 1
         refused = args.refused is not None
         project.supply_failure(args.node_id, refused=refused, message=args.refused if refused else args.failed)
         print(f"{args.node_id} marked {'needs_review (refused)' if refused else 'failed'}")
