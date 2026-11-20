@@ -9,6 +9,10 @@ Brief: $ARGUMENTS
 
 If the brief is empty, ask the user for one (product, angle or audience, anything they care about) and stop.
 
+## 0. Check the folder
+
+Before any stage writes a file, check that the current working directory is the AdForge repo: it has a `pyproject.toml` that defines the `adengine` script, and this command's own file at `commands/ad.md`. Then run `uv run adengine --help` and check that it succeeds. Projects are written to `projects/<slug>/` in this folder, and every stage and the engine assume it. If either check fails, write nothing and stop: tell the user to start Claude in the AdForge repo (for example `cd <adforge> && claude --plugin-dir .`) and run `/ad` again.
+
 Run these stages in order. Each stage is a skill in this plugin; follow it exactly and let it write its file before moving on.
 
 1. **ad-strategist** — brand file, slug, `brief.md`, `script-source.md` (supplied scripts), `plan.md`.

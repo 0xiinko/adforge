@@ -63,7 +63,7 @@ Only when the brief gives no story and no script, pick one angle per variant, ea
 
 1. **Broom with no dustpan** — most cleanses sell Step 1 alone; Ellora is the complete two-step protocol.
 2. **The week-two crash** — people quit cleanses at week two; Step 2 is the part that was missing.
-3. **"Tests came back normal"** — the unexplained-symptom frustration, answered with the two-step routine.
+3. **"Tests came back normal"** — the unexplained-symptom frustration, answered with the two-step routine. The ad never claims the tests missed something (no hidden infection or cause); see script-writer's claim check.
 4. **Great-grandmother's remedy, done properly** — an old remedy with the binder step added.
 5. **The arithmetic** — three failed attempts elsewhere cost $130–210; the kit is $49.99.
 

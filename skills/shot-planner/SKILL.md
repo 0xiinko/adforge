@@ -20,6 +20,7 @@ Output: `projects/<slug>/vN/shots.md`, plus `projects/<slug>/body/shots.md` once
 - Bottle shots: say which product is on screen — "Gut Cleanse (Step 1)", "Zeolite Drops (Step 2)", or both. A bottle must be upright and its label readable.
 - Packshots use the house look from the brand file: seamless warm greige backdrop, one soft key from the upper left, soft shadow to the right, no props, no hands, bottle dead centre.
 - People: ordinary, believable, the audience's age; never a doctor, pharmacist or anyone in a white coat; no before/after bodies.
+- Claim rules apply to pictures too: never show parasites, worms, eggs, anything leaving the body, a toilet, lab tests or a gut diagram; a metaphor (the broom, the dustpan) is fine.
 - No on-screen text inside the shots; captions and the end card are added in assembly.
 
 ## Write `projects/<slug>/vN/shots.md`

@@ -155,6 +155,28 @@ def test_render_loop_gets_ellora_path_and_never_double_spends():
     assert "failed or timed out" not in runner
 
 
+def test_ad_checks_it_runs_in_the_adforge_repo_first():
+    command = (ROOT / "commands" / "ad.md").read_text()
+    check = command.index("## 0. Check the folder")
+    assert check < command.index("1. **ad-strategist**")
+    for needle in ("pyproject.toml", "`commands/ad.md`", "uv run adengine --help",
+                   "start Claude in the AdForge repo"):
+        assert needle in command[check:], needle
+
+
+def test_claim_rules_cover_the_brands_riskiest_language():
+    writer = (ROOT / "skills" / "script-writer" / "SKILL.md").read_text()
+    assert "kill first" not in writer.lower()
+    assert "cleanse, then bind and flush" in writer
+    for needle in ("parasites", "worms", "kills", "die-off", "toxins", "heavy metals", "infection",
+                   "Parasite Cleanse", "Tests came back normal", "standard tests miss"):
+        assert needle in writer, needle
+    shots = (ROOT / "skills" / "shot-planner" / "SKILL.md").read_text()
+    assert "never show parasites, worms" in shots
+    strategist = (ROOT / "skills" / "ad-strategist" / "SKILL.md").read_text()
+    assert "never claims the tests missed something" in strategist
+
+
 def test_task6_review_fixes():
     runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
     assert "any `Notes:` lines from the scripts" in runner and "they do not block approval" in runner

@@ -29,7 +29,7 @@ When the plan says **Script source: written**, write the script yourself followi
 
 - 5 beats, one per shot (or the plan's shot count).
 - Beat 1 is the hook: it must land in the first 2 seconds and name a feeling the audience recognises (in their own words from the brand file: bloated by the afternoon, foggy, tests came back normal, crashed at week two).
-- Middle beats argue the angle. The two-step argument (kill first, flush second; a broom with no dustpan) is the brand's strongest material.
+- Middle beats argue the angle. The two-step argument (two steps: cleanse, then bind and flush; a broom with no dustpan) is the brand's strongest material. Say it as a routine and a missing step, never as killing anything (see the claim check).
 - Last beat is the offer and CTA: product, price, the 30-day money-back guarantee.
 - End card: short, e.g. "Complete Kit $49.99 · myellora.com".
 
@@ -49,7 +49,11 @@ Check every spoken line, caption and the end card against the brand file's "do n
 - before-and-after body claims;
 - "clinically proven";
 - a doctor or pharmacist recommending it;
-- a testimonial stating a diagnosis was resolved.
+- a testimonial stating a diagnosis was resolved;
+- the website's mechanism language, which reads as a disease claim in an ad: parasites, worms, eggs or larvae; anything that kills; die-off; toxins or heavy metals being released, trapped or reabsorbed; an infection of any kind. The brand doctrine says "Step 1 kills the parasites" — an ad never does. Say "Step 1, Gut Cleanse" and "Step 2 binds and flushes" (detox support), nothing about what is being killed or released;
+- the product name "Parasite Cleanse": always call Step 1 "Gut Cleanse".
+
+**Tests came back normal** lines: keep it to the frustration ("my tests came back normal and I still felt awful") and what the customer did next. Never say or imply that standard tests miss an infection, that there is a hidden cause, or that the product finds or fixes one.
 
 Safe ground: digestive comfort, bloating, regularity, energy, gut health support, detox support, feeling like yourself again. Frame results as what a customer noticed, not what the product does. A testimonial-style line needs an on-screen results disclaimer ("Individual results vary").
 
