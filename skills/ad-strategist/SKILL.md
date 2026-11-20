@@ -1,6 +1,6 @@
 ---
 name: ad-strategist
-description: Stage 1 of /ad. Turns an ad brief into projects/<slug>/plan.md (product, audience, offer, defaults, one angle per variant), after saving the Ellora brand context and house rules to brand/ellora.md. Use at the start of every /ad run.
+description: Stage 1 of /ad. Turns an ad brief into projects/<slug>/plan.md (product, audience, offer, defaults, one angle per variant, whether the script is supplied and its hooks/body structure), after saving the Ellora brand context and house rules to brand/ellora.md. Use at the start of every /ad run.
 ---
 
 # Ad strategist (stage 1)
@@ -32,9 +32,11 @@ If the Ellora connector is not available in this session, stop and tell the user
 - Decide the **script source**:
   - **Script source: supplied** — the brief already contains spoken copy: hook paragraphs, a body, a full monologue, lines in quotes. Copy that copy, word for word and in order, to `projects/<slug>/script-source.md`, split into sections: `## Hook 1 — <name>`, `## Hook 2 — <name>`, …, and `## Body` when there is one (a single monologue with no hooks is `## Hook 1` with no body). Keep any stage notes from the brief (who speaks, tone, banners) under `## Notes`.
   - **Script source: written** — the brief describes the product, audience, angle or a story, but has no spoken copy. Never invent a script at this stage; script-writer writes it.
+  - If the brief has only a tagline or a few example phrases in quotes, or you cannot tell whether its copy is meant to be spoken as the ad, ask the user before choosing.
 - Decide the **structure**:
   - **hooks + shared body** — the supplied script has several hooks that each lead into the same body (marked "→ BODY", "BODY", "+ body"). One variant per hook; the body is rendered once and shared.
   - **full variants** — anything else: each variant is a complete ad.
+  - Several hooks with no body marker are full variants; one hook plus a body is a single full variant (not shared).
 
 ## 3. Defaults
 
@@ -50,6 +52,8 @@ Use the brief's value when it gives one; otherwise the default, marked *(default
 | Aspect | 9:16 |
 | Variants | 1 (more only when the brief asks, e.g. "3 variants") |
 | Shots per variant | 5, each 4 or 5 s |
+
+With **Script source: supplied**, Length and Shots per variant come from the script, not these defaults: length ≈ the copy's word count ÷ 2.6 words per second, split into shots of 4 or 5 s (one spoken line each, ≤ 14 words). Write them as *(from the script)*, not *(default)*. Never cut supplied copy to fit a default length.
 
 ## 4. Angles
 
@@ -74,15 +78,15 @@ If the brief names an angle, use it for v1.
 - Audience: <...>
 - Offer: <...>
 - Platform: <...>
-- Length: <...>
+- Length: <s> — for hooks + shared body: hook <s> + body <s> (per variant)
 - Aspect: <...>
 - Variants: <N>
 - Script source: <supplied | written>
 - Structure: <hooks + shared body | full variants>
-- Shots per variant: <...>
+- Shots per variant: <n> — for hooks + shared body: <hook shots> + <body shots> shared
 
 ## Angles
-- v1: <angle name> — <one line on how this ad argues it>
+- v1: <angle name, or the hook's name when supplied> — <one line on how this ad argues it>
 - v2: ...
 
 ## Story and cast notes

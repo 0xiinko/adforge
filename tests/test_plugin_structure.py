@@ -78,5 +78,6 @@ def test_strategist_detects_supplied_scripts_and_story():
     body = (ROOT / "skills" / "ad-strategist" / "SKILL.md").read_text()
     for needle in ("Script source: supplied", "Script source: written", "hooks + shared body",
                    "script-source.md", "The brief's story wins", "Never invent a script",
-                   ".pdf", "the Read tool reads PDFs"):
+                   ".pdf", "the Read tool reads PDFs", "- Script source: <supplied | written>", "## Body",
+                   "*(from the script)*", "ask the user before choosing"):
         assert needle in body, needle
