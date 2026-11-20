@@ -63,7 +63,8 @@ def test_ad_runner_points_at_its_examples_and_the_engine_loop():
                    "adengine external", "adengine supply", "--fingerprint", "generateAudio: true",
                    "check_generation", "adengine revise", "report.md", '"audio": true',
                    "referenceImageUrls", '--only "cast.*"', "look at it before supplying", "cast.<id>.ref",
-                   "at most one corrective retry", '--refused "visual check:', "show_streams"):
+                   "at most one corrective retry", '--refused "visual check:', "show_streams",
+                   "never re-render on the earlier yes", "go to §4 only when nothing is awaiting", "retried.txt"):
         assert needle in body, needle
     assert "generateAudio: false" not in body and "tts" not in body
 
