@@ -144,6 +144,17 @@ def test_carry_over_review_fixes():
         assert needle in runner, needle
 
 
+def test_render_loop_gets_ellora_path_and_never_double_spends():
+    runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
+    for needle in ("`wait: false`", "For every image and clip, call `check_generation`",
+                   "`--ref` is the Ellora path `check_generation` returns",
+                   "not the download link", "`--id` is the generation id",
+                   "A queued or running generation has not failed",
+                   "`check_generation` reports it failed"):
+        assert needle in runner, needle
+    assert "failed or timed out" not in runner
+
+
 def test_task6_review_fixes():
     runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
     assert "any `Notes:` lines from the scripts" in runner and "they do not block approval" in runner
