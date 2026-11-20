@@ -467,7 +467,7 @@
             "value": 1.0
           },
           "visible": true,
-          "volume": 1.0
+          "volume": 0.0
         },
         {
           "caption_info": null,
@@ -529,7 +529,7 @@
             "value": 1.0
           },
           "visible": true,
-          "volume": 1.0
+          "volume": 0.0
         },
         {
           "caption_info": null,
@@ -591,7 +591,7 @@
             "value": 1.0
           },
           "visible": true,
-          "volume": 1.0
+          "volume": 0.0
         }
       ],
       "type": "video"

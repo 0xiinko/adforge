@@ -140,19 +140,21 @@ def build_draft(
 
     main = _track("main", "video", mid("track", "main"))
 
-    def add_visual(key: str, path: Path, name: str, kind: str, start: float, duration: float) -> None:
+    def add_visual(key: str, path: Path, name: str, kind: str, start: float, duration: float,
+                   volume: float = 0.0) -> None:
         material_id, speed_id = mid("video", key), mid("speed", "video", key)
         mats["videos"].append(_video_material(material_id, media_path(path), name, kind, duration, width, height))
         mats["speeds"].append(_speed(speed_id))
         main["segments"].append(_segment(mid("segment", "video", key), material_id, start, duration,
-                                         extra_refs=[speed_id]))
+                                         volume=volume, extra_refs=[speed_id]))
 
     for i, e in enumerate(tracks["video"]):
         if e["kind"] == "slate":
             add_visual(str(i), slates[i], e["placeholder_for"], "photo", e["start"], e["duration"])
         else:
+            # A clip's own sound plays only when the timeline uses it; otherwise it is muted.
             add_visual(str(i), project_dir / e["path"], e["node"], "video" if e["kind"] == "video" else "photo",
-                       e["start"], e["duration"])
+                       e["start"], e["duration"], volume=1.0 if e.get("audio") else 0.0)
     card = tracks["end_card"]
     if card and card["path"]:
         add_visual("end_card", project_dir / card["path"], card["node"], "photo", card["start"], card["duration"])

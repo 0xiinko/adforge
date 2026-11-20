@@ -8,9 +8,10 @@ P = Path("/home/me/projects/mug-launch")
 SLATES = {2: P / "v1/capcut_draft/placeholders/slate_02.png"}
 
 
-def entry(node, path, kind, start, duration, transition="cut", ts=0.0, placeholder_for=None):
+def entry(node, path, kind, start, duration, transition="cut", ts=0.0, placeholder_for=None, audio=False):
     return {"node": node, "path": path, "kind": kind, "start": start, "duration": duration,
-            "transition": transition, "transition_s": ts, "hold": False, "placeholder_for": placeholder_for}
+            "transition": transition, "transition_s": ts, "hold": False, "placeholder_for": placeholder_for,
+            "audio": audio}
 
 
 TIMELINE = {
@@ -135,3 +136,14 @@ def test_write_draft_creates_both_files(tmp_path):
 
 def test_golden_basic_draft():
     assert_golden("capcut_basic.json", build()[0])
+
+
+def test_video_segment_volume_follows_clip_audio():
+    draft, _ = build()
+    assert [s["volume"] for s in track(draft, "main")["segments"]] == [0.0, 0.0, 0.0]
+    video = [dict(e) for e in TIMELINE["tracks"]["video"]]
+    video[0]["audio"] = True
+    timeline = {**TIMELINE, "tracks": {**TIMELINE["tracks"], "video": video}}
+    draft, _ = build_draft(timeline, project_dir=P, draft_dir=P / "v1/capcut_draft", draft_name="mug-launch_v1",
+                           media_root=None, now_us=1_700_000_000_000_000, slates=SLATES)
+    assert [s["volume"] for s in track(draft, "main")["segments"]] == [1.0, 0.0, 0.0]
