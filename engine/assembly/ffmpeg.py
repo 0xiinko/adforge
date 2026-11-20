@@ -12,6 +12,12 @@ from engine.config import AssemblyConfig
 from engine.providers.base import ProviderError
 
 
+# Filters the preview renderer needs; macOS builds without libass/freetype lack some.
+REQUIRED_FILTERS = (
+    "xfade", "sidechaincompress", "subtitles", "drawtext", "zoompan", "tpad", "amix", "adelay", "apad",
+)
+
+
 @dataclass(frozen=True)
 class MediaInfo:
     duration: float
@@ -60,6 +66,16 @@ class FFmpeg:
 
     async def run(self, args: list[str], cwd: Path | None = None) -> None:
         await self._exec([self.ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y", *args], cwd)
+
+    async def version(self) -> str:
+        out = await self._exec([self.ffmpeg, "-nostdin", "-version"], None)
+        return out.splitlines()[0] if out else ""
+
+    async def missing_filters(self, required: tuple[str, ...] = REQUIRED_FILTERS) -> list[str]:
+        out = await self._exec([self.ffmpeg, "-nostdin", "-hide_banner", "-filters"], None)
+        names = {parts[1] for parts in (line.split() for line in out.splitlines())
+                 if len(parts) >= 3 and "->" in parts[2]}
+        return [f for f in required if f not in names]
 
     async def probe(self, path: Path) -> MediaInfo:
         out = await self._exec([

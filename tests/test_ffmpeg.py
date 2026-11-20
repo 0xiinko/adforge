@@ -77,3 +77,18 @@ def test_run_never_reads_stdin(monkeypatch, tmp_path):
     assert run_args[:2] == ("ffmpeg-x", "-nostdin")
     assert run_kwargs["stdin"] == asyncio.subprocess.DEVNULL
     assert probe_kwargs["stdin"] == asyncio.subprocess.DEVNULL
+
+
+def test_missing_filters_empty_with_installed_ffmpeg(ffmpeg):
+    assert asyncio.run(ffmpeg.missing_filters()) == []
+    assert asyncio.run(ffmpeg.missing_filters(("xfade", "no_such_filter_xyz"))) == ["no_such_filter_xyz"]
+
+
+def test_slate_renders_with_explicit_font_file(ffmpeg, tmp_path):
+    from engine.assembly.ffmpeg_preview import render_slate_image
+
+    font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    ff = FFmpeg(AssemblyConfig(font_file=font))
+    out = asyncio.run(render_slate_image(ff, tmp_path, "slate.png", 360, 640, "MISSING\nv1.s01.clip"))
+    info = asyncio.run(ff.probe(out))
+    assert out.exists() and (info.width, info.height) == (360, 640)
