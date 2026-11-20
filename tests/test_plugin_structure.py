@@ -177,6 +177,16 @@ def test_claim_rules_cover_the_brands_riskiest_language():
     assert "never claims the tests missed something" in strategist
 
 
+def test_an_attached_document_is_the_brief():
+    command = (ROOT / "commands" / "ad.md").read_text()
+    assert "An attached document counts as the brief" in command
+    assert "no typed brief and no attached document" in command
+    strategist = (ROOT / "skills" / "ad-strategist" / "SKILL.md").read_text()
+    for needle in ("attached to the message", "full text of the attached document",
+                   "`Source: attached <file name>`", "exactly as a file path"):
+        assert needle in strategist, needle
+
+
 def test_task6_review_fixes():
     runner = (ROOT / "skills" / "ad-runner" / "SKILL.md").read_text()
     assert "any `Notes:` lines from the scripts" in runner and "they do not block approval" in runner

@@ -7,7 +7,7 @@ argument-hint: <brief, e.g. "Complete Kit, broom-with-no-dustpan angle, 2 varian
 
 Brief: $ARGUMENTS
 
-If the brief is empty, ask the user for one (product, angle or audience, anything they care about) and stop.
+An attached document counts as the brief: a PDF, text or Markdown file (or any document whose text you can read) attached to the message that ran `/ad` is the brief, together with any words typed after `/ad`. Only when there is no typed brief and no attached document, ask the user for one (product, angle or audience, anything they care about, or a brief doc to attach) and stop.
 
 ## 0. Check the folder
 
